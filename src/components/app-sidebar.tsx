@@ -28,8 +28,9 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signOut, onAuthStateChanged } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
 import { getUserProfile, User } from "@/lib/db"
+import { addDoc, collection } from "firebase/firestore"
 
 // Menu items definition with allowed roles
 const allItems = [
@@ -115,6 +116,26 @@ export function AppSidebar() {
     }
   }
 
+  const handleCreateAdminProfile = async () => {
+    if (!auth.currentUser?.email) return;
+    try {
+      setLoading(true);
+      await addDoc(collection(db, "users"), {
+        email: auth.currentUser.email,
+        name: "Admin System",
+        role: "SUPERADMIN",
+        status: "active",
+        createdAt: new Date()
+      });
+      // Force reload to fetch the new profile
+      window.location.reload();
+    } catch (error) {
+      console.error("Error creating admin profile:", error);
+      alert("Error creating profile: " + error);
+      setLoading(false);
+    }
+  }
+
   // Filter items based on role
   const filteredItems = allItems.filter(item => 
     userProfile?.role && item.roles.includes(userProfile.role)
@@ -157,6 +178,15 @@ export function AppSidebar() {
               <p>Profile Found: {debugInfo.profileFound ? 'Yes' : 'No'}</p>
               <p>Role: {debugInfo.role || 'None'}</p>
               <p>Items: {filteredItems.length}</p>
+              
+              {!debugInfo.profileFound && debugInfo.authEmail && (
+                <button 
+                  onClick={handleCreateAdminProfile}
+                  className="mt-2 w-full bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-bold"
+                >
+                  FIX: Create Admin Profile
+                </button>
+              )}
             </div>
 
           </SidebarGroupContent>
