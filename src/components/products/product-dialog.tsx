@@ -33,9 +33,26 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, "Le prix doit être positif"),
   quantity: z.coerce.number().min(0, "La quantité doit être positive"),
   minStock: z.coerce.number().min(0, "Le stock minimum doit être positif"),
-  category: z.string().default("General"),
+  category: z.string().default("Général"),
   imageUrl: z.string().optional(),
 })
+
+const CATEGORIES = [
+  "Général",
+  "Moteur",
+  "Freinage",
+  "Suspension & Direction",
+  "Transmission",
+  "Électricité & Éclairage",
+  "Climatisation",
+  "Carrosserie",
+  "Vitrage",
+  "Intérieur",
+  "Entretien & Vidange",
+  "Pneumatiques",
+  "Accessoires",
+  "Outillage"
+]
 
 interface ProductDialogProps {
   open: boolean
@@ -55,7 +72,7 @@ export function ProductDialog({ open, onOpenChange, product, onSubmit }: Product
       price: 0,
       quantity: 0,
       minStock: 5,
-      category: "General",
+      category: "Général",
       imageUrl: "",
     },
   })
@@ -68,7 +85,7 @@ export function ProductDialog({ open, onOpenChange, product, onSubmit }: Product
         price: product.price,
         quantity: product.quantity,
         minStock: product.minStock,
-        category: product.category || "General",
+        category: product.category || "Général",
         imageUrl: product.imageUrl || "",
       })
     } else {
@@ -78,7 +95,7 @@ export function ProductDialog({ open, onOpenChange, product, onSubmit }: Product
         price: 0,
         quantity: 0,
         minStock: 5,
-        category: "General",
+        category: "Général",
         imageUrl: "",
       })
     }
@@ -167,6 +184,26 @@ export function ProductDialog({ open, onOpenChange, product, onSubmit }: Product
                   <FormLabel>SKU</FormLabel>
                   <FormControl>
                     <Input placeholder="Code SKU" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Catégorie</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input list="categories" placeholder="Sélectionner ou saisir une catégorie" {...field} />
+                      <datalist id="categories">
+                        {CATEGORIES.map((category) => (
+                          <option key={category} value={category} />
+                        ))}
+                      </datalist>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
