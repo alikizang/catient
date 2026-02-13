@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   Home,
   Package,
@@ -26,25 +27,29 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { signOut } from "firebase/auth"
+import { signOut, onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/lib/firebase"
+import { getUserRole } from "@/lib/db"
 
-// Menu items.
-const items = [
+// Menu items definition with allowed roles
+const allItems = [
   {
     title: "Dashboard",
     url: "/",
     icon: Home,
+    roles: ["admin", "manager", "cashier", "stock_keeper"],
   },
   {
     title: "Caisse",
     url: "/caisse",
     icon: ShoppingCart,
+    roles: ["admin", "manager", "cashier"],
   },
   {
     title: "Stock",
     url: "/stock",
     icon: Package,
+    roles: ["admin", "manager", "stock_keeper"],
     items: [
       { title: "Produits", url: "/stock/products" },
       { title: "Fournisseurs", url: "/stock/suppliers" },
@@ -55,21 +60,42 @@ const items = [
     title: "Ventes",
     url: "/ventes",
     icon: FileText,
+    roles: ["admin", "manager", "cashier"],
   },
   {
     title: "Utilisateurs",
     url: "/utilisateurs",
     icon: Users,
+    roles: ["admin"],
   },
   {
     title: "Rapports",
     url: "/rapports",
     icon: BarChart3,
+    roles: ["admin", "manager"],
   },
 ]
 
 export function AppSidebar() {
   const router = useRouter()
+  const [role, setRole] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user && user.email) {
+        try {
+          const userRole = await getUserRole(user.email)
+          setRole(userRole)
+        } catch (error) {
+          console.error("Error fetching user role:", error)
+        }
+      }
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   const handleSignOut = async () => {
     try {
@@ -79,6 +105,16 @@ export function AppSidebar() {
       console.error("Error signing out:", error)
     }
   }
+
+  // Filter items based on role
+  // If role is null (loading or not found), show minimal or nothing? 
+  // Let's show nothing while loading to avoid flickering, or show Dashboard only?
+  // If role is not found but user is logged in, maybe default to 'cashier' or minimal access?
+  // For now, if loading, return empty list.
+  
+  const filteredItems = allItems.filter(item => 
+    role && item.roles.includes(role)
+  )
 
   return (
     <Sidebar collapsible="icon">
@@ -98,7 +134,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
                     <Link href={item.url}>

@@ -55,6 +55,14 @@ export async function getUsers() {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 }
 
+export async function getUserRole(email: string): Promise<string | null> {
+  const { where } = await import("firebase/firestore");
+  const q = query(collection(db, "users"), where("email", "==", email), limit(1));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return snapshot.docs[0].data().role;
+}
+
 // --- Sales ---
 export async function getRecentSales() {
   const q = query(collection(db, "sales"), orderBy("date", "desc"), limit(5));
