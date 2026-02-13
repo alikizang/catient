@@ -29,7 +29,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signOut, onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/lib/firebase"
-import { getUserRole } from "@/lib/db"
+import { getUserProfile, User } from "@/lib/db"
 
 // Menu items definition with allowed roles
 const allItems = [
@@ -78,18 +78,22 @@ const allItems = [
 
 export function AppSidebar() {
   const router = useRouter()
-  const [role, setRole] = useState<string | null>(null)
+  const [userProfile, setUserProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && user.email) {
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      console.log("Auth State Changed:", authUser?.email);
+      if (authUser && authUser.email) {
         try {
-          const userRole = await getUserRole(user.email)
-          setRole(userRole)
+          const profile = await getUserProfile(authUser.email)
+          console.log("Fetched User Profile:", profile);
+          setUserProfile(profile)
         } catch (error) {
-          console.error("Error fetching user role:", error)
+          console.error("Error fetching user profile:", error)
         }
+      } else {
+        setUserProfile(null)
       }
       setLoading(false)
     })
@@ -107,13 +111,8 @@ export function AppSidebar() {
   }
 
   // Filter items based on role
-  // If role is null (loading or not found), show minimal or nothing? 
-  // Let's show nothing while loading to avoid flickering, or show Dashboard only?
-  // If role is not found but user is logged in, maybe default to 'cashier' or minimal access?
-  // For now, if loading, return empty list.
-  
   const filteredItems = allItems.filter(item => 
-    role && item.roles.includes(role)
+    userProfile?.role && item.roles.includes(userProfile.role)
   )
 
   return (
@@ -150,6 +149,19 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          {userProfile && (
+            <SidebarMenuItem className="mb-2">
+              <div className="flex items-center gap-2 px-2 py-1.5 text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                  <Users className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">{userProfile.name}</span>
+                  <span className="truncate text-xs text-muted-foreground">{userProfile.role}</span>
+                </div>
+              </div>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleSignOut} tooltip="Déconnexion">
               <LogOut />
