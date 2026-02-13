@@ -71,6 +71,12 @@ export async function getUserProfile(email: string): Promise<User | null> {
   return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as User;
 }
 
+export async function updateUser(id: string, data: Partial<User>) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const userRef = doc(db, "users", id);
+  await updateDoc(userRef, data);
+}
+
 // --- Sales ---
 export async function getRecentSales() {
   const q = query(collection(db, "sales"), orderBy("date", "desc"), limit(5));
