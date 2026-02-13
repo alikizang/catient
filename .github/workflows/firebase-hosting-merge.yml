@@ -19,19 +19,13 @@ jobs:
 
       - name: Build
         run: npm run build
-        # Note: Since we are using App Hosting (Cloud Build) now, this workflow is technically for Firebase Hosting (Classic).
-        # But if you want to keep using this GH Action to deploy to "Hosting", we need these vars.
-        # However, for "App Hosting", the build happens on Google Cloud, not here.
-        # Given your setup, you seem to be using App Hosting (backend).
-        # This workflow might be redundant or conflicting if you enabled App Hosting GitHub integration.
-        # But fixing it won't hurt.
         env:
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyB32_wiYcnxHQETDlg8YNeUAPk6G072YY0"
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "catientservices.firebaseapp.com"
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: "catientservices"
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "catientservices.firebasestorage.app"
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "42186056420"
+          NEXT_PUBLIC_FIREBASE_APP_ID: "1:42186056420:web:375988f4a8f0a3b26dc2f1"
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
