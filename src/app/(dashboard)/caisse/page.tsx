@@ -245,7 +245,7 @@ export default function CaissePage() {
       return (
         <div className="flex flex-col">
           <span className="font-semibold text-sm leading-tight mb-0.5">{match[1]}</span>
-          <span className="text-xs text-muted-foreground">{match[2]}</span>
+          <span className="font-bold text-xs text-primary">{match[2]}</span>
         </div>
       );
     }
