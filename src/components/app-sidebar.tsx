@@ -28,9 +28,8 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signOut, onAuthStateChanged } from "firebase/auth"
-import { auth, db } from "@/lib/firebase"
+import { auth } from "@/lib/firebase"
 import { getUserProfile, User } from "@/lib/db"
-import { addDoc, collection } from "firebase/firestore"
 
 // Menu items definition with allowed roles
 const allItems = [
@@ -81,22 +80,15 @@ export function AppSidebar() {
   const router = useRouter()
   const [userProfile, setUserProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [debugInfo, setDebugInfo] = useState<any>({})
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      console.log("Auth State Changed:", authUser?.email);
-      setDebugInfo((prev: any) => ({ ...prev, authEmail: authUser?.email, authStatus: authUser ? 'Logged In' : 'Logged Out' }))
-      
       if (authUser && authUser.email) {
         try {
           const profile = await getUserProfile(authUser.email)
-          console.log("Fetched User Profile:", profile);
           setUserProfile(profile)
-          setDebugInfo((prev: any) => ({ ...prev, profileFound: !!profile, role: profile?.role, profileId: profile?.id }))
         } catch (error) {
           console.error("Error fetching user profile:", error)
-          setDebugInfo((prev: any) => ({ ...prev, error: String(error) }))
         }
       } else {
         setUserProfile(null)
@@ -113,26 +105,6 @@ export function AppSidebar() {
       router.push("/login")
     } catch (error) {
       console.error("Error signing out:", error)
-    }
-  }
-
-  const handleCreateAdminProfile = async () => {
-    if (!auth.currentUser?.email) return;
-    try {
-      setLoading(true);
-      await addDoc(collection(db, "users"), {
-        email: auth.currentUser.email,
-        name: "Admin System",
-        role: "SUPERADMIN",
-        status: "active",
-        createdAt: new Date()
-      });
-      // Force reload to fetch the new profile
-      window.location.reload();
-    } catch (error) {
-      console.error("Error creating admin profile:", error);
-      alert("Error creating profile: " + error);
-      setLoading(false);
     }
   }
 
@@ -170,25 +142,6 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-            
-            {/* DEBUG SECTION - REMOVE BEFORE PRODUCTION */}
-            <div className="mt-4 p-2 text-xs bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-              <p className="font-bold text-red-500">Debug Info:</p>
-              <p>Email: {debugInfo.authEmail || 'None'}</p>
-              <p>Profile Found: {debugInfo.profileFound ? 'Yes' : 'No'}</p>
-              <p>Role: {debugInfo.role || 'None'}</p>
-              <p>Items: {filteredItems.length}</p>
-              
-              {!debugInfo.profileFound && debugInfo.authEmail && (
-                <button 
-                  onClick={handleCreateAdminProfile}
-                  className="mt-2 w-full bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-bold"
-                >
-                  FIX: Create Admin Profile
-                </button>
-              )}
-            </div>
-
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
