@@ -283,8 +283,8 @@ export default function CaissePage() {
                         )}
                       </div>
                       <div>
-                        <h3 className="font-semibold truncate" title={product.name}>{product.name}</h3>
-                        <p className="text-sm text-muted-foreground">{product.sku}</p>
+                        <h3 className="font-semibold text-sm leading-tight mb-1" title={product.name}>{product.name}</h3>
+                        <p className="text-xs text-muted-foreground">{product.sku}</p>
                         <div className="flex flex-col items-start gap-1 mt-1 md:flex-row md:justify-between md:items-center">
                           <span className={`text-xs px-1.5 py-0.5 rounded-full ${product.quantity > product.minStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             Stock: {product.quantity}

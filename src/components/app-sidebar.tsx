@@ -18,6 +18,7 @@ import {
   SidebarHeader,
   SidebarFooter,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
