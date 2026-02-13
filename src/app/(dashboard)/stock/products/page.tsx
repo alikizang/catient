@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Pencil } from "lucide-react"
+import { Plus, Search, Pencil, ImageIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { getProducts, addProduct, updateProduct, Product } from "@/lib/db"
@@ -150,6 +150,17 @@ export default function ProductsPage() {
                   <div className="flex flex-col">
                     <span className="text-muted-foreground text-xs">Catégorie</span>
                     <span>{product.category || "Général"}</span>
+                  </div>
+                  <div className="flex items-end justify-end">
+                    {product.imageUrl ? (
+                      <div className="h-12 w-12 rounded-md overflow-hidden border">
+                        <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
