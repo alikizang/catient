@@ -1,15 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import {
-  Home,
-  Package,
-  ShoppingCart,
-  Users,
-  FileText,
-  BarChart3,
-  LogOut,
   Wrench,
+  LogOut,
+  Users,
 } from "lucide-react"
 
 import {
@@ -27,77 +21,14 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { signOut, onAuthStateChanged } from "firebase/auth"
+import { signOut } from "firebase/auth"
 import { auth } from "@/lib/firebase"
-import { getUserProfile, User } from "@/lib/db"
-
-// Menu items definition with allowed roles
-const allItems = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: Home,
-    roles: ["SUPERADMIN", "MANAGER", "CAISSE", "STOCK"],
-  },
-  {
-    title: "Caisse",
-    url: "/caisse",
-    icon: ShoppingCart,
-    roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
-  },
-  {
-    title: "Stock",
-    url: "/stock",
-    icon: Package,
-    roles: ["SUPERADMIN", "MANAGER", "STOCK"],
-    items: [
-      { title: "Produits", url: "/stock/products" },
-      { title: "Fournisseurs", url: "/stock/suppliers" },
-      { title: "Mouvements", url: "/stock/movements" },
-    ]
-  },
-  {
-    title: "Ventes",
-    url: "/ventes",
-    icon: FileText,
-    roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
-  },
-  {
-    title: "Utilisateurs",
-    url: "/utilisateurs",
-    icon: Users,
-    roles: ["SUPERADMIN"],
-  },
-  {
-    title: "Rapports",
-    url: "/rapports",
-    icon: BarChart3,
-    roles: ["SUPERADMIN", "MANAGER"],
-  },
-]
+import { useAuth } from "@/contexts/auth-context"
+import { PERMISSIONS } from "@/config/permissions"
 
 export function AppSidebar() {
   const router = useRouter()
-  const [userProfile, setUserProfile] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser && authUser.email) {
-        try {
-          const profile = await getUserProfile(authUser.email)
-          setUserProfile(profile)
-        } catch (error) {
-          console.error("Error fetching user profile:", error)
-        }
-      } else {
-        setUserProfile(null)
-      }
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [])
+  const { userProfile } = useAuth()
 
   const handleSignOut = async () => {
     try {
@@ -109,7 +40,7 @@ export function AppSidebar() {
   }
 
   // Filter items based on role
-  const filteredItems = allItems.filter(item => 
+  const filteredItems = PERMISSIONS.filter(item => 
     userProfile?.role && item.roles.includes(userProfile.role)
   )
 
