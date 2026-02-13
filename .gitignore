@@ -1,0 +1,9 @@
+# Firebase Service Account keys
+*.json
+catientservices-firebase-adminsdk-fbsvc-d0de27531f.json
+
+# Node
+node_modules/
+dist/
+.env
+.DS_Store
