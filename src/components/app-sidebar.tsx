@@ -30,6 +30,13 @@ import { SeedDatabaseButton } from "@/components/seed-database-button"
 export function AppSidebar() {
   const router = useRouter()
   const { userProfile } = useAuth()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -64,7 +71,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {filteredItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title} onClick={handleLinkClick}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>

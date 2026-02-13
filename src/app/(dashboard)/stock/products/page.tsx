@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -10,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search } from "lucide-react"
+import { Plus, Search, Pencil } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { getProducts, addProduct, updateProduct, Product } from "@/lib/db"
@@ -102,7 +103,61 @@ export default function ProductsPage() {
           />
         </div>
       </div>
-      <div className="rounded-md border bg-card">
+      {/* Mobile View */}
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-24 w-full" />
+              </CardContent>
+            </Card>
+          ))
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Aucun produit trouvé.
+          </div>
+        ) : (
+          filteredProducts.map((product) => (
+            <Card key={product.id}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-semibold text-lg">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-sm mt-2">
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Prix</span>
+                    <span className="font-medium">{product.price.toLocaleString()} FCFA</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Stock</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{product.quantity}</span>
+                      {product.quantity <= product.minStock && (
+                        <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Bas</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Catégorie</span>
+                    <span>{product.category || "Général"}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Desktop View */}
+      <div className="hidden md:block rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
