@@ -77,6 +77,13 @@ export async function updateUser(id: string, data: Partial<User>) {
   await updateDoc(userRef, data);
 }
 
+export async function addUser(user: Omit<User, "id">) {
+  return await addDoc(collection(db, "users"), {
+    ...user,
+    createdAt: Timestamp.now()
+  });
+}
+
 // --- Sales ---
 export async function getRecentSales() {
   const q = query(collection(db, "sales"), orderBy("date", "desc"), limit(5));

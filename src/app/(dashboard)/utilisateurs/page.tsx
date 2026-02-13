@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label"
 import { Plus, Search, Shield, Loader2, Pencil } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { getUsers, updateUser, User } from "@/lib/db"
+import { getUsers, updateUser, addUser, User } from "@/lib/db"
 import { toast } from "sonner"
 
 const roleColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -52,6 +52,11 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState<string>("")
   const [editedName, setEditedName] = useState<string>("")
   const [updating, setUpdating] = useState(false)
+
+  // Add User State
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [newUser, setNewUser] = useState({ name: "", email: "", role: "CAISSE" })
+  const [adding, setAdding] = useState(false)
 
   const fetchUsers = async () => {
     try {
@@ -94,6 +99,32 @@ export default function UsersPage() {
     }
   }
 
+  const handleAddUser = async () => {
+    if (!newUser.name || !newUser.email) {
+      toast.error("Veuillez remplir le nom et l'email")
+      return
+    }
+
+    try {
+      setAdding(true)
+      await addUser({
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        status: "active"
+      })
+      toast.success("Utilisateur ajouté avec succès")
+      setIsAddDialogOpen(false)
+      setNewUser({ name: "", email: "", role: "CAISSE" })
+      fetchUsers()
+    } catch (error) {
+      console.error("Error adding user:", error)
+      toast.error("Erreur lors de l'ajout de l'utilisateur")
+    } finally {
+      setAdding(false)
+    }
+  }
+
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -103,7 +134,7 @@ export default function UsersPage() {
     <div className="flex-1 space-y-4 pt-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Utilisateurs</h2>
-        <Button onClick={() => toast.info("Fonctionnalité d'ajout à venir via Auth")}>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Ajouter un utilisateur
         </Button>
       </div>
@@ -223,6 +254,68 @@ export default function UsersPage() {
             <Button onClick={handleSaveRole} disabled={updating}>
               {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter un utilisateur</DialogTitle>
+            <DialogDescription>
+              Créez un profil pour un utilisateur existant dans Firebase Auth. L'email doit correspondre exactement.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-name" className="text-right">Nom</Label>
+              <Input
+                id="new-name"
+                value={newUser.name}
+                onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                className="col-span-3"
+                placeholder="Ex: Paul Stock"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-email" className="text-right">Email</Label>
+              <Input
+                id="new-email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                className="col-span-3"
+                placeholder="Ex: stock@catient-services.com"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-role" className="text-right">Rôle</Label>
+              <Select 
+                value={newUser.role} 
+                onValueChange={(val) => setNewUser({...newUser, role: val})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Sélectionner un rôle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABLE_ROLES.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={adding}>
+              Annuler
+            </Button>
+            <Button onClick={handleAddUser} disabled={adding}>
+              {adding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Ajouter
             </Button>
           </DialogFooter>
         </DialogContent>
