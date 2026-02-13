@@ -13,39 +13,79 @@ import {
 import { Plus, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { getProducts, Product } from "@/lib/db"
+import { getProducts, addProduct, updateProduct, Product } from "@/lib/db"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ProductDialog } from "@/components/products/product-dialog"
+import { toast } from "sonner"
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   useEffect(() => {
-    async function loadProducts() {
-      try {
-        const data = await getProducts()
-        setProducts(data)
-      } catch (error) {
-        console.error("Failed to load products:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
     loadProducts()
   }, [])
+
+  async function loadProducts() {
+    try {
+      setLoading(true)
+      const data = await getProducts()
+      setProducts(data)
+    } catch (error) {
+      console.error("Failed to load products:", error)
+      toast.error("Erreur lors du chargement des produits")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const handleAddProduct = () => {
+    setSelectedProduct(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product)
+    setIsDialogOpen(true)
+  }
+
+  const handleProductSubmit = async (values: any) => {
+    try {
+      if (selectedProduct && selectedProduct.id) {
+        await updateProduct(selectedProduct.id, values)
+        toast.success("Produit mis à jour avec succès")
+      } else {
+        await addProduct(values)
+        toast.success("Produit ajouté avec succès")
+      }
+      await loadProducts()
+    } catch (error) {
+      console.error("Failed to save product:", error)
+      toast.error("Erreur lors de l'enregistrement du produit")
+    }
+  }
+
   return (
     <div className="flex-1 space-y-4 pt-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Produits</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-3xl font-bold tracking-tight">Produits</h2>
+          {!loading && (
+            <Badge variant="outline" className="text-base px-2 py-1">
+              {products.length} Total
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center space-x-2">
-          <Button>
+          <Button onClick={handleAddProduct}>
             <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
           </Button>
         </div>
@@ -93,7 +133,7 @@ export default function ProductsPage() {
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.sku}</TableCell>
                   <TableCell>{product.name}</TableCell>
-                  <TableCell>Général</TableCell> {/* Category mapping needed later */}
+                  <TableCell>{product.category || "Général"}</TableCell>
                   <TableCell>{product.price.toLocaleString()} FCFA</TableCell>
                   <TableCell>{product.quantity}</TableCell>
                   <TableCell>
@@ -104,7 +144,7 @@ export default function ProductsPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">Modifier</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleEditProduct(product)}>Modifier</Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -112,6 +152,12 @@ export default function ProductsPage() {
           </TableBody>
         </Table>
       </div>
+      <ProductDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+        product={selectedProduct} 
+        onSubmit={handleProductSubmit} 
+      />
     </div>
   )
 }

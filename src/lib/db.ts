@@ -14,7 +14,7 @@ export interface Product {
   id?: string;
   name: string;
   sku: string;
-  categoryId: string;
+  category?: string;
   price: number;
   quantity: number;
   minStock: number;
@@ -41,6 +41,12 @@ export async function addProduct(product: Omit<Product, "id">) {
     ...product,
     createdAt: Timestamp.now()
   });
+}
+
+export async function updateProduct(id: string, product: Partial<Product>) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const productRef = doc(db, "products", id);
+  await updateDoc(productRef, product);
 }
 
 // --- Users ---
