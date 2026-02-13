@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Download, X } from "lucide-react"
 import {
@@ -10,40 +9,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { usePWA } from "@/contexts/pwa-context"
+import { useEffect, useState } from "react"
 
 export function PWAInstallPrompt() {
-  const [supportsPWA, setSupportsPWA] = useState(false)
-  const [promptInstall, setPromptInstall] = useState<any>(null)
+  const { isInstallable, install, isAppInstalled } = usePWA()
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault()
-      setSupportsPWA(true)
-      setPromptInstall(e)
-      // Show prompt after a small delay
-      setTimeout(() => setIsVisible(true), 3000)
+    if (isInstallable && !isAppInstalled) {
+      const timer = setTimeout(() => setIsVisible(true), 3000)
+      return () => clearTimeout(timer)
     }
-    
-    window.addEventListener("beforeinstallprompt", handler)
-
-    return () => window.removeEventListener("beforeinstallprompt", handler)
-  }, [])
+  }, [isInstallable, isAppInstalled])
 
   const onClick = (evt: React.MouseEvent) => {
     evt.preventDefault()
-    if (!promptInstall) {
-      return
-    }
-    promptInstall.prompt()
-    promptInstall.userChoice.then((choiceResult: any) => {
-      if (choiceResult.outcome === "accepted") {
-        setIsVisible(false)
-      }
-    })
+    install()
+    setIsVisible(false)
   }
 
-  if (!supportsPWA || !isVisible) {
+  if (!isInstallable || isAppInstalled || !isVisible) {
     return null
   }
 

@@ -4,6 +4,7 @@ import {
   Wrench,
   LogOut,
   Users,
+  Download,
 } from "lucide-react"
 
 import {
@@ -27,11 +28,13 @@ import { auth } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { PERMISSIONS } from "@/config/permissions"
 import { SeedDatabaseButton } from "@/components/seed-database-button"
+import { usePWA } from "@/contexts/pwa-context"
 
 export function AppSidebar() {
   const router = useRouter()
   const { userProfile } = useAuth()
   const { isMobile, setOpenMobile } = useSidebar()
+  const { isInstallable, install, isAppInstalled } = usePWA()
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -102,6 +105,14 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SeedDatabaseButton />
           </SidebarMenuItem>
+          {isInstallable && !isAppInstalled && (
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={install} tooltip="Installer l'application">
+                <Download />
+                <span>Installer l'app</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleSignOut} tooltip="Déconnexion">
               <LogOut />

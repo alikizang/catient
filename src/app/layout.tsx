@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { PWAProvider } from "@/contexts/pwa-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,11 +37,13 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${inter.className} antialiased`}>
-        <Providers>
-          {children}
-          <PWAInstallPrompt />
-          <Toaster />
-        </Providers>
+        <PWAProvider>
+          <Providers>
+            {children}
+            <PWAInstallPrompt />
+            <Toaster />
+          </Providers>
+        </PWAProvider>
       </body>
     </html>
   );
