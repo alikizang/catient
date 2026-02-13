@@ -1,6 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Plus, Search, Shield, Loader2, Pencil } from "lucide-react"
+import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -26,11 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Plus, Search, Shield, Loader2, Pencil } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { getUsers, updateUser, addUser, User } from "@/lib/db"
-import { toast } from "sonner"
+import { getUsers, updateUser, addUser, type User } from "@/lib/db"
 
 const roleColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   SUPERADMIN: "default",
@@ -45,7 +46,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  
+
   // Edit State
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -84,7 +85,7 @@ export default function UsersPage() {
 
   const handleSaveRole = async () => {
     if (!editingUser || !editingUser.id) return
-    
+
     try {
       setUpdating(true)
       await updateUser(editingUser.id, { role: selectedRole, name: editedName })
@@ -111,7 +112,7 @@ export default function UsersPage() {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        status: "active"
+        status: "active",
       })
       toast.success("Utilisateur ajouté avec succès")
       setIsAddDialogOpen(false)
@@ -125,9 +126,10 @@ export default function UsersPage() {
     }
   }
 
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = users.filter(
+    (user) =>
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
@@ -138,7 +140,7 @@ export default function UsersPage() {
           <Plus className="mr-2 h-4 w-4" /> Ajouter un utilisateur
         </Button>
       </div>
-      
+
       <div className="flex items-center space-x-2">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -191,7 +193,11 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${user.status === "active" ? "bg-green-500" : "bg-gray-300"}`} />
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          user.status === "active" ? "bg-green-500" : "bg-gray-300"
+                        }`}
+                      />
                       {user.status === "active" ? "Actif" : "Inactif"}
                     </div>
                   </TableCell>
@@ -212,10 +218,11 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Modifier le rôle</DialogTitle>
             <DialogDescription>
-              Modifier le rôle pour l'utilisateur <strong>{editingUser?.name}</strong> ({editingUser?.email}).
+              Modifier le rôle pour l'utilisateur <strong>{editingUser?.name}</strong> (
+              {editingUser?.email}).
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
@@ -264,36 +271,43 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Ajouter un utilisateur</DialogTitle>
             <DialogDescription>
-              Créez un profil pour un utilisateur existant dans Firebase Auth. L'email doit correspondre exactement.
+              Créez un profil pour un utilisateur existant dans Firebase Auth. L'email doit
+              correspondre exactement.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="new-name" className="text-right">Nom</Label>
+              <Label htmlFor="new-name" className="text-right">
+                Nom
+              </Label>
               <Input
                 id="new-name"
                 value={newUser.name}
-                onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                 className="col-span-3"
                 placeholder="Ex: Paul Stock"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="new-email" className="text-right">Email</Label>
+              <Label htmlFor="new-email" className="text-right">
+                Email
+              </Label>
               <Input
                 id="new-email"
                 value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 className="col-span-3"
                 placeholder="Ex: stock@catient-services.com"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="new-role" className="text-right">Rôle</Label>
-              <Select 
-                value={newUser.role} 
-                onValueChange={(val) => setNewUser({...newUser, role: val})}
+              <Label htmlFor="new-role" className="text-right">
+                Rôle
+              </Label>
+              <Select
+                value={newUser.role}
+                onValueChange={(val) => setNewUser({ ...newUser, role: val })}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Sélectionner un rôle" />
