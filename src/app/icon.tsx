@@ -13,7 +13,7 @@ export default function Icon() {
     (
       <div
         style={{
-          background: "oklch(0.34 0.13 265)",
+          background: "#1e3a8a",
           width: "100%",
           height: "100%",
           display: "flex",

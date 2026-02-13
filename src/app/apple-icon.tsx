@@ -14,7 +14,7 @@ export default function Icon() {
       <div
         style={{
           fontSize: 128,
-          background: "oklch(0.34 0.13 265)", // Primary color
+          background: "#1e3a8a", // Primary color
           width: "100%",
           height: "100%",
           display: "flex",
