@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -23,6 +23,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Product } from "@/lib/db"
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { app } from "@/lib/firebase"
+import { Loader2, Upload } from "lucide-react"
 
 const productSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -31,6 +34,7 @@ const productSchema = z.object({
   quantity: z.coerce.number().min(0, "La quantité doit être positive"),
   minStock: z.coerce.number().min(0, "Le stock minimum doit être positif"),
   category: z.string().default("General"),
+  imageUrl: z.string().optional(),
 })
 
 interface ProductDialogProps {
@@ -41,6 +45,8 @@ interface ProductDialogProps {
 }
 
 export function ProductDialog({ open, onOpenChange, product, onSubmit }: ProductDialogProps) {
+  const [uploading, setUploading] = useState(false)
+  
   const form = useForm<any>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -50,6 +56,7 @@ export function ProductDialog({ open, onOpenChange, product, onSubmit }: Product
       quantity: 0,
       minStock: 5,
       category: "General",
+      imageUrl: "",
     },
   })
 
@@ -62,6 +69,7 @@ export function ProductDialog({ open, onOpenChange, product, onSubmit }: Product
         quantity: product.quantity,
         minStock: product.minStock,
         category: product.category || "General",
+        imageUrl: product.imageUrl || "",
       })
     } else {
       form.reset({
@@ -71,9 +79,28 @@ export function ProductDialog({ open, onOpenChange, product, onSubmit }: Product
         quantity: 0,
         minStock: 5,
         category: "General",
+        imageUrl: "",
       })
     }
   }, [product, form])
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      setUploading(true)
+      const storage = getStorage(app)
+      const storageRef = ref(storage, `products/${Date.now()}_${file.name}`)
+      await uploadBytes(storageRef, file)
+      const url = await getDownloadURL(storageRef)
+      form.setValue("imageUrl", url)
+    } catch (error) {
+      console.error("Upload failed:", error)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleSubmit = async (values: z.infer<typeof productSchema>) => {
     await onSubmit(values)
@@ -92,6 +119,33 @@ export function ProductDialog({ open, onOpenChange, product, onSubmit }: Product
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            
+            {/* Image Upload Field */}
+            <div className="flex flex-col gap-2">
+              <FormLabel>Image du produit</FormLabel>
+              <div className="flex items-center gap-4">
+                <div className="relative h-20 w-20 rounded-md border flex items-center justify-center overflow-hidden bg-muted">
+                  {form.watch("imageUrl") ? (
+                    <img src={form.watch("imageUrl")} alt="Preview" className="h-full w-full object-cover" />
+                  ) : (
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <Input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageUpload} 
+                  disabled={uploading}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+
             <FormField
               control={form.control}
               name="name"

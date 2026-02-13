@@ -21,6 +21,7 @@ export interface Product {
   price: number;
   quantity: number;
   minStock: number;
+  imageUrl?: string;
   createdAt?: Timestamp;
 }
 

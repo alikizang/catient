@@ -153,8 +153,12 @@ export default function CaissePage() {
                     onClick={() => addToCart(product)}
                   >
                     <CardContent className="p-4 flex flex-col gap-2">
-                      <div className="aspect-square bg-muted rounded-md flex items-center justify-center">
-                        <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
+                      <div className="aspect-square bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                        {product.imageUrl ? (
+                          <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
+                        )}
                       </div>
                       <div>
                         <h3 className="font-semibold truncate" title={product.name}>{product.name}</h3>
