@@ -169,7 +169,7 @@ export default function ReportsPage() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000}k`} />
-                  <Tooltip formatter={(value: number) => [`${value.toLocaleString()} FCFA`, "Revenu"]} />
+                  <Tooltip formatter={(value: number | undefined) => [`${(value || 0).toLocaleString()} FCFA`, "Revenu"]} />
                   <Bar dataKey="amount" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
                 </BarChart>
               </ResponsiveContainer>
@@ -195,7 +195,7 @@ export default function ReportsPage() {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="quantity"
-                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                    label={(props: any) => `${((props.percent || 0) * 100).toFixed(0)}%`}
                   >
                     {topProducts.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -230,7 +230,7 @@ export default function ReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12}} />
-                <Tooltip formatter={(value: number) => [`${value.toLocaleString()} FCFA`, "Valeur"]} />
+                <Tooltip formatter={(value: number | undefined) => [`${(value || 0).toLocaleString()} FCFA`, "Valeur"]} />
                 <Bar dataKey="value" fill="#82ca9d" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
