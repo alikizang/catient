@@ -50,6 +50,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState<string>("")
+  const [editedName, setEditedName] = useState<string>("")
   const [updating, setUpdating] = useState(false)
 
   const fetchUsers = async () => {
@@ -72,6 +73,7 @@ export default function UsersPage() {
   const handleEditClick = (user: User) => {
     setEditingUser(user)
     setSelectedRole(user.role)
+    setEditedName(user.name)
     setIsDialogOpen(true)
   }
 
@@ -80,8 +82,8 @@ export default function UsersPage() {
     
     try {
       setUpdating(true)
-      await updateUser(editingUser.id, { role: selectedRole })
-      toast.success("Rôle mis à jour avec succès")
+      await updateUser(editingUser.id, { role: selectedRole, name: editedName })
+      toast.success("Utilisateur mis à jour avec succès")
       setIsDialogOpen(false)
       fetchUsers() // Refresh list
     } catch (error) {
@@ -184,6 +186,17 @@ export default function UsersPage() {
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Nom
+              </Label>
+              <Input
+                id="name"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="role" className="text-right">
                 Rôle
