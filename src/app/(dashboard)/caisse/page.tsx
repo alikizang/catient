@@ -22,6 +22,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
 interface CartItem {
   product: Product
   quantity: number
@@ -37,6 +45,7 @@ export default function CaissePage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [isSuccessOpen, setIsSuccessOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH")
+  const [mobileProvider, setMobileProvider] = useState<string>("MIXX_BY_YAS")
   const [amountPaid, setAmountPaid] = useState<string>("")
   const [reference, setReference] = useState("")
   const [processing, setProcessing] = useState(false)
@@ -162,8 +171,19 @@ export default function CaissePage() {
     const dateStr = sale.date?.toDate ? sale.date.toDate().toLocaleString() : new Date().toLocaleString()
     doc.text(`Date: ${dateStr}`, 14, 40)
     doc.text(`Client: ${sale.customerName}`, 14, 45)
-    doc.text(`Paiement: ${sale.paymentMethod}`, 14, 50)
-    if(sale.reference) doc.text(`Réf: ${sale.reference}`, 14, 55)
+    
+    let paymentLabel = sale.paymentMethod as string
+    if (sale.paymentMethod === 'MOBILE_MONEY' && sale.reference) {
+      // Try to detect provider from format or saved data (if we saved provider)
+      // Since we only saved ref, we display ref. 
+      // Ideally we should save provider in DB too, but for now let's just show method + ref
+      paymentLabel = `MOBILE MONEY`
+    }
+    
+    doc.text(`Paiement: ${paymentLabel}`, 14, 50)
+    if(sale.reference) {
+      doc.text(`Réf: ${sale.reference}`, 14, 55)
+    }
 
     // Table
     autoTable(doc, {
@@ -397,16 +417,34 @@ export default function CaissePage() {
               </TabsContent>
 
               <TabsContent value="MOBILE_MONEY" className="space-y-4">
-                <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
-                  <Smartphone className="h-8 w-8 text-muted-foreground" />
-                  <div className="flex-1">
+                <div className="flex flex-col gap-4 p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-4">
+                    <Smartphone className="h-8 w-8 text-muted-foreground" />
+                    <div className="flex-1">
+                      <Label className="mb-2 block">Opérateur</Label>
+                      <Select value={mobileProvider} onValueChange={setMobileProvider}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choisir opérateur" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MIXX_BY_YAS">Mixx By Yas</SelectItem>
+                          <SelectItem value="FLOOZ">Flooz</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div>
                     <Label htmlFor="mm-ref">Référence Transaction</Label>
                     <Input 
                       id="mm-ref" 
-                      placeholder="Ex: T-12345678" 
+                      placeholder={mobileProvider === 'MIXX_BY_YAS' ? "Ex: 14033285824" : "Ex: 1250326442549"} 
                       value={reference}
                       onChange={(e) => setReference(e.target.value)}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {mobileProvider === 'MIXX_BY_YAS' ? 'Format: Ref: XXXXXXXXXXX' : 'Format: Txn Id: XXXXXXXXXXXXX'}
+                    </p>
                   </div>
                 </div>
               </TabsContent>
