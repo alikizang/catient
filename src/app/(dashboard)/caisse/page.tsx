@@ -365,7 +365,7 @@ export default function CaissePage() {
             <div className="p-4 pt-0 w-full grid grid-cols-2 gap-2">
               <Button 
                 variant="outline" 
-                className="w-full text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10"
+                className="w-full h-12 text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10"
                 onClick={clearCart}
                 disabled={cart.length === 0 || processing}
               >
