@@ -8,19 +8,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
+      
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: 'npm'
       
       - name: Install dependencies
-        run: pnpm install
+        run: npm ci
 
       - name: Build
-        run: pnpm build
+        run: npm run build
+        # Note: Since we are using App Hosting (Cloud Build) now, this workflow is technically for Firebase Hosting (Classic).
+        # But if you want to keep using this GH Action to deploy to "Hosting", we need these vars.
+        # However, for "App Hosting", the build happens on Google Cloud, not here.
+        # Given your setup, you seem to be using App Hosting (backend).
+        # This workflow might be redundant or conflicting if you enabled App Hosting GitHub integration.
+        # But fixing it won't hurt.
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
