@@ -191,7 +191,7 @@ export default function DashboardPage() {
                       tickFormatter={(value) => `${value/1000}k`} 
                     />
                     <Tooltip 
-                      formatter={(value: number) => [`${value.toLocaleString()} FCFA`, "Revenu"]}
+                      formatter={(value: number | undefined) => [`${(value || 0).toLocaleString()} FCFA`, "Revenu"]}
                       cursor={{fill: 'transparent'}}
                     />
                     <Bar dataKey="amount" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
