@@ -104,6 +104,7 @@ export async function seedDatabase() {
       date: Timestamp.fromDate(saleDate),
       customerName: Math.random() > 0.5 ? "Client Comptoir" : `Client #${1000 + i}`,
       total: total,
+      paymentMethod: Math.random() > 0.5 ? "CASH" : "MOBILE_MONEY",
       items: saleItems
     });
   }
