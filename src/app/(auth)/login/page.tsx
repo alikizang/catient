@@ -53,7 +53,7 @@ export default function LoginPage() {
         </div>
         <CardTitle className="text-2xl">Connexion</CardTitle>
         <CardDescription>
-          Entrez votre email pour accéder à TVS Moto Service
+          Entrez votre email pour accéder à Çatient Services
         </CardDescription>
       </CardHeader>
       <CardContent>

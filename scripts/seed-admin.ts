@@ -24,19 +24,19 @@ async function seed() {
   // 1. Create Users
   const users = [
     {
-      email: 'admin@tvs-moto.com',
+      email: 'admin@catient-services.com',
       password: 'password123',
       displayName: 'Prosper (Admin)',
       role: 'SUPERADMIN',
     },
     {
-      email: 'caisse@tvs-moto.com',
+      email: 'caisse@catient-services.com',
       password: 'password123',
       displayName: 'Jean Vendeur',
       role: 'CAISSE',
     },
     {
-      email: 'stock@tvs-moto.com',
+      email: 'stock@catient-services.com',
       password: 'password123',
       displayName: 'Paul Stock',
       role: 'STOCK',

@@ -88,8 +88,8 @@ export function AppSidebar() {
             <Wrench className="size-4" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-semibold">TVS Moto</span>
-            <span className="">Service</span>
+            <span className="font-semibold">Çatient</span>
+            <span className="">Services</span>
           </div>
         </div>
       </SidebarHeader>
