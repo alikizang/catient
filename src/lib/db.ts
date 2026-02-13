@@ -123,6 +123,12 @@ export async function getRecentSales() {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale));
 }
 
+export async function getAllSales() {
+  const q = query(collection(db, "sales"), orderBy("date", "desc"), limit(100));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale));
+}
+
 export async function addSale(sale: Omit<Sale, "id">) {
   return await addDoc(collection(db, "sales"), {
     ...sale,
