@@ -1,6 +1,6 @@
 import { Timestamp } from "firebase/firestore";
 import { 
-  addProduct, 
+  getProducts,
   addUser, 
   addSale, 
   addSupplier, 
@@ -9,19 +9,6 @@ import {
   User,
   Supplier
 } from "./db";
-
-const DUMMY_PRODUCTS = [
-  { name: "Huile Moteur 5W30", sku: "OIL-5W30", category: "Entretien", price: 15000, quantity: 50, minStock: 10 },
-  { name: "Filtre à Huile", sku: "FLT-OIL", category: "Entretien", price: 5000, quantity: 30, minStock: 5 },
-  { name: "Plaquettes de Frein AV", sku: "BRK-PAD-F", category: "Freinage", price: 25000, quantity: 15, minStock: 4 },
-  { name: "Disque de Frein", sku: "BRK-DSC", category: "Freinage", price: 45000, quantity: 8, minStock: 2 },
-  { name: "Liquide de Refroidissement", sku: "CLT-5L", category: "Entretien", price: 8000, quantity: 25, minStock: 8 },
-  { name: "Batterie 12V 70Ah", sku: "BAT-70", category: "Électricité", price: 65000, quantity: 5, minStock: 2 },
-  { name: "Essuie-glace Avant", sku: "WIP-F", category: "Accessoires", price: 7500, quantity: 40, minStock: 10 },
-  { name: "Nettoyant Injecteurs", sku: "CLN-INJ", category: "Additifs", price: 6000, quantity: 20, minStock: 5 },
-  { name: "Ampoule H7", sku: "LGT-H7", category: "Éclairage", price: 3500, quantity: 100, minStock: 20 },
-  { name: "Tapis de Sol (Set)", sku: "MAT-SET", category: "Accessoires", price: 12000, quantity: 10, minStock: 3 },
-];
 
 const DUMMY_SUPPLIERS = [
   { name: "AutoParts Express", contact: "Jean Dupont", email: "contact@autoparts.com", phone: "0102030405", address: "123 Rue de la Mécanique, Paris" },
@@ -55,26 +42,35 @@ export async function seedDatabase() {
     supplierIds.push(ref.id);
   }
 
-  // 3. Add Products & Initial Stock Movements
-  console.log("Seeding Products...");
-  const productIds = [];
-  for (const product of DUMMY_PRODUCTS) {
-    const ref = await addProduct(product);
-    productIds.push({ id: ref.id, ...product });
+  // 3. Get Real Products from DB
+  console.log("Fetching existing products for simulation...");
+  const products = await getProducts();
+  
+  if (products.length === 0) {
+    console.warn("No products found in database. Skipping sales and movements generation.");
+    return;
+  }
+  
+  // 4. Generate Random Movements for Real Products (Simulation)
+  console.log("Seeding Stock Movements...");
+  for (let i = 0; i < 15; i++) {
+    const randomProduct = products[Math.floor(Math.random() * products.length)];
+    if (!randomProduct.id) continue;
 
-    // Add initial stock movement
+    const isIncoming = Math.random() > 0.5;
+    
     await addStockMovement({
       date: Timestamp.now(),
-      type: "IN",
-      productId: ref.id,
-      productName: product.name,
-      quantity: product.quantity,
-      reason: "Initial Stock",
+      type: isIncoming ? "IN" : "OUT",
+      productId: randomProduct.id,
+      productName: randomProduct.name,
+      quantity: Math.floor(Math.random() * 10) + 1,
+      reason: isIncoming ? "Réassort fournisseur" : "Ajustement inventaire",
       performedBy: "System Seeder"
     });
   }
 
-  // 4. Generate Random Sales (Past 30 days)
+  // 5. Generate Random Sales (Past 30 days) using Real Products
   console.log("Seeding Sales...");
   const now = new Date();
   for (let i = 0; i < 20; i++) {
@@ -89,7 +85,9 @@ export async function seedDatabase() {
     let total = 0;
 
     for (let j = 0; j < numItems; j++) {
-      const randomProduct = productIds[Math.floor(Math.random() * productIds.length)];
+      const randomProduct = products[Math.floor(Math.random() * products.length)];
+      if (!randomProduct.id) continue;
+
       const qty = Math.floor(Math.random() * 3) + 1;
       const itemTotal = randomProduct.price * qty;
       
