@@ -80,17 +80,22 @@ export function AppSidebar() {
   const router = useRouter()
   const [userProfile, setUserProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [debugInfo, setDebugInfo] = useState<any>({})
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       console.log("Auth State Changed:", authUser?.email);
+      setDebugInfo((prev: any) => ({ ...prev, authEmail: authUser?.email, authStatus: authUser ? 'Logged In' : 'Logged Out' }))
+      
       if (authUser && authUser.email) {
         try {
           const profile = await getUserProfile(authUser.email)
           console.log("Fetched User Profile:", profile);
           setUserProfile(profile)
+          setDebugInfo((prev: any) => ({ ...prev, profileFound: !!profile, role: profile?.role, profileId: profile?.id }))
         } catch (error) {
           console.error("Error fetching user profile:", error)
+          setDebugInfo((prev: any) => ({ ...prev, error: String(error) }))
         }
       } else {
         setUserProfile(null)
@@ -144,6 +149,16 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+            
+            {/* DEBUG SECTION - REMOVE BEFORE PRODUCTION */}
+            <div className="mt-4 p-2 text-xs bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+              <p className="font-bold text-red-500">Debug Info:</p>
+              <p>Email: {debugInfo.authEmail || 'None'}</p>
+              <p>Profile Found: {debugInfo.profileFound ? 'Yes' : 'No'}</p>
+              <p>Role: {debugInfo.role || 'None'}</p>
+              <p>Items: {filteredItems.length}</p>
+            </div>
+
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
