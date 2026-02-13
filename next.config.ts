@@ -13,14 +13,6 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // Silence Turbopack warning by explicitly enabling it
-  experimental: {
-    turbo: {
-      rules: {
-        // ...
-      },
-    },
-  },
 };
 
 export default withPWA(nextConfig);
