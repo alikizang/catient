@@ -5,10 +5,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Search, Trash2, ShoppingCart, Plus, Minus, Loader2 } from "lucide-react"
-import { getProducts, addSale, type Product, type Sale } from "@/lib/db"
+import { Search, Trash2, ShoppingCart, Plus, Minus, Loader2, CreditCard, Banknote, Smartphone, Check, Printer, Share2, Receipt } from "lucide-react"
+import { getProducts, addSale, type Product, type Sale, type PaymentMethod } from "@/lib/db"
 import { toast } from "sonner"
 import { Timestamp } from "firebase/firestore"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface CartItem {
   product: Product
@@ -20,7 +32,15 @@ export default function CaissePage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [cart, setCart] = useState<CartItem[]>([])
+  
+  // Checkout State
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH")
+  const [amountPaid, setAmountPaid] = useState<string>("")
+  const [reference, setReference] = useState("")
   const [processing, setProcessing] = useState(false)
+  const [lastSale, setLastSale] = useState<Sale | null>(null)
 
   useEffect(() => {
     async function loadData() {
@@ -46,7 +66,6 @@ export default function CaissePage() {
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id)
       if (existing) {
-        // Check stock limit
         if (existing.quantity >= product.quantity) {
           toast.warning("Stock insuffisant")
           return prev
@@ -65,7 +84,7 @@ export default function CaissePage() {
     setCart(prev => prev.map(item => {
       if (item.product.id === productId) {
         const newQty = item.quantity + delta
-        if (newQty <= 0) return null // Remove if 0
+        if (newQty <= 0) return null 
         if (newQty > item.product.quantity) {
           toast.warning("Stock insuffisant")
           return item
@@ -76,22 +95,27 @@ export default function CaissePage() {
     }).filter(Boolean) as CartItem[])
   }
 
-  const clearCart = () => setCart([])
+  const clearCart = () => {
+    setCart([])
+    setAmountPaid("")
+    setReference("")
+    setPaymentMethod("CASH")
+  }
 
   const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
-  const tva = 0 // Assuming prices are TTC or No TVA logic defined yet
-  const total = subtotal + tva
+  const total = subtotal 
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return
-
     try {
       setProcessing(true)
       
       const sale: Omit<Sale, "id"> = {
         date: Timestamp.now(),
-        customerName: "Client Comptoir", // Default for POS
+        customerName: "Client Comptoir",
         total: total,
+        paymentMethod,
+        amountPaid: amountPaid ? parseFloat(amountPaid) : total,
+        reference,
         items: cart.map(item => ({
           productId: item.product.id!,
           name: item.product.name,
@@ -101,13 +125,20 @@ export default function CaissePage() {
       }
 
       await addSale(sale)
-      toast.success("Vente enregistrée avec succès !")
-      clearCart()
       
-      // Ideally we should also update local product stock or refetch
-      // For now let's just refetch to be safe
-      const updatedProducts = await getProducts()
-      setProducts(updatedProducts)
+      // Update local stock optimistically
+      setProducts(prev => prev.map(p => {
+        const cartItem = cart.find(c => c.product.id === p.id)
+        if (cartItem) {
+          return { ...p, quantity: p.quantity - cartItem.quantity }
+        }
+        return p
+      }))
+
+      setLastSale({ ...sale, date: Timestamp.now() } as Sale)
+      setIsCheckoutOpen(false)
+      setIsSuccessOpen(true)
+      clearCart()
 
     } catch (error) {
       console.error("Checkout error:", error)
@@ -115,6 +146,62 @@ export default function CaissePage() {
     } finally {
       setProcessing(false)
     }
+  }
+
+  const generateReceipt = (sale: Sale) => {
+    const doc = new jsPDF()
+    
+    // Header
+    doc.setFontSize(18)
+    doc.text("CATIENT SERVICES", 105, 20, { align: "center" })
+    doc.setFontSize(12)
+    doc.text("REÇU DE CAISSE", 105, 28, { align: "center" })
+    
+    // Info
+    doc.setFontSize(10)
+    const dateStr = sale.date?.toDate ? sale.date.toDate().toLocaleString() : new Date().toLocaleString()
+    doc.text(`Date: ${dateStr}`, 14, 40)
+    doc.text(`Client: ${sale.customerName}`, 14, 45)
+    doc.text(`Paiement: ${sale.paymentMethod}`, 14, 50)
+    if(sale.reference) doc.text(`Réf: ${sale.reference}`, 14, 55)
+
+    // Table
+    autoTable(doc, {
+      startY: 60,
+      head: [['Produit', 'Qté', 'Prix U.', 'Total']],
+      body: sale.items.map(item => [
+        item.name,
+        item.quantity,
+        item.price.toLocaleString(),
+        (item.price * item.quantity).toLocaleString()
+      ]),
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: 2 },
+      headStyles: { fillColor: [220, 220, 220], textColor: 20, fontStyle: 'bold' }
+    })
+
+    // Total
+    const finalY = (doc as any).lastAutoTable.finalY || 65
+    doc.setFontSize(12)
+    doc.setFont("helvetica", "bold")
+    doc.text(`TOTAL: ${sale.total.toLocaleString()} FCFA`, 14, finalY + 10)
+    
+    if (sale.paymentMethod === 'CASH' && sale.amountPaid) {
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Reçu: ${sale.amountPaid.toLocaleString()} FCFA`, 14, finalY + 16)
+      doc.text(`Rendu: ${(sale.amountPaid - sale.total).toLocaleString()} FCFA`, 14, finalY + 21)
+    }
+
+    doc.save(`recu_${Date.now()}.pdf`)
+  }
+
+  const shareOnWhatsApp = (sale: Sale) => {
+    const itemsList = sale.items.map(i => `- ${i.name} x${i.quantity}`).join('%0A')
+    const dateStr = sale.date?.toDate ? sale.date.toDate().toLocaleDateString() : new Date().toLocaleDateString()
+    const message = `*CATIENT SERVICES - REÇU*%0A------------------%0ADate: ${dateStr}%0ATotal: *${sale.total.toLocaleString()} FCFA*%0A------------------%0AArticles:%0A${itemsList}%0A------------------%0AMerci de votre visite !`
+    
+    window.open(`https://wa.me/?text=${message}`, '_blank')
   }
 
   return (
@@ -242,10 +329,6 @@ export default function CaissePage() {
                 <span className="text-muted-foreground">Sous-total</span>
                 <span>{subtotal.toLocaleString()} FCFA</span>
               </div>
-              {/* <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">TVA (18%)</span>
-                <span>{tva.toLocaleString()} FCFA</span>
-              </div> */}
               <Separator className="my-2" />
               <div className="flex justify-between text-xl font-bold">
                 <span>Total</span>
@@ -263,19 +346,142 @@ export default function CaissePage() {
               </Button>
               <Button 
                 className="w-full h-12 text-lg font-bold"
-                onClick={handleCheckout}
+                onClick={() => setIsCheckoutOpen(true)}
                 disabled={cart.length === 0 || processing}
               >
-                {processing ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  "Encaisser"
-                )}
+                Encaisser
               </Button>
             </div>
           </CardFooter>
         </Card>
       </div>
+
+      {/* Checkout Dialog */}
+      <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Paiement</DialogTitle>
+            <DialogDescription>
+              Total à payer : <span className="font-bold text-primary">{total.toLocaleString()} FCFA</span>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Tabs defaultValue="CASH" onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="CASH">Espèce</TabsTrigger>
+              <TabsTrigger value="MOBILE_MONEY">Mobile</TabsTrigger>
+              <TabsTrigger value="CARD">Carte</TabsTrigger>
+              <TabsTrigger value="CREDIT">Crédit</TabsTrigger>
+            </TabsList>
+            
+            <div className="py-4 space-y-4">
+              <TabsContent value="CASH" className="space-y-4">
+                <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                  <Banknote className="h-8 w-8 text-muted-foreground" />
+                  <div className="flex-1">
+                    <Label htmlFor="amount-received">Montant reçu</Label>
+                    <Input 
+                      id="amount-received" 
+                      type="number" 
+                      placeholder="Ex: 10000" 
+                      value={amountPaid}
+                      onChange={(e) => setAmountPaid(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {amountPaid && parseFloat(amountPaid) >= total && (
+                  <div className="text-center p-2 bg-green-100 text-green-700 rounded-md font-medium">
+                    Monnaie à rendre : {(parseFloat(amountPaid) - total).toLocaleString()} FCFA
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="MOBILE_MONEY" className="space-y-4">
+                <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                  <Smartphone className="h-8 w-8 text-muted-foreground" />
+                  <div className="flex-1">
+                    <Label htmlFor="mm-ref">Référence Transaction</Label>
+                    <Input 
+                      id="mm-ref" 
+                      placeholder="Ex: T-12345678" 
+                      value={reference}
+                      onChange={(e) => setReference(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="CARD" className="space-y-4">
+                <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                  <CreditCard className="h-8 w-8 text-muted-foreground" />
+                  <div className="flex-1">
+                    <Label htmlFor="card-ref">Derniers 4 chiffres (Optionnel)</Label>
+                    <Input 
+                      id="card-ref" 
+                      placeholder="Ex: 4242" 
+                      value={reference}
+                      onChange={(e) => setReference(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="CREDIT" className="space-y-4">
+                <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                  <Receipt className="h-8 w-8 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Vente à crédit. Assurez-vous d'avoir noté le nom du client.
+                    </p>
+                    <Label htmlFor="credit-note">Note / Nom (Optionnel)</Label>
+                    <Input 
+                      id="credit-note" 
+                      placeholder="Ex: Patron, Garage Michel..." 
+                      value={reference}
+                      onChange={(e) => setReference(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            </div>
+          </Tabs>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>Annuler</Button>
+            <Button onClick={handleCheckout} disabled={processing}>
+              {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmer Paiement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
+        <DialogContent className="sm:max-w-[400px] text-center">
+          <div className="flex flex-col items-center justify-center py-6 gap-4">
+            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+              <Check className="h-8 w-8 text-green-600" />
+            </div>
+            <DialogTitle className="text-2xl">Paiement Réussi !</DialogTitle>
+            <DialogDescription>
+              La vente a été enregistrée avec succès.
+            </DialogDescription>
+            
+            <div className="flex flex-col w-full gap-2 mt-4">
+              <Button className="w-full" onClick={() => lastSale && generateReceipt(lastSale)}>
+                <Printer className="mr-2 h-4 w-4" /> Télécharger Reçu PDF
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => lastSale && shareOnWhatsApp(lastSale)}>
+                <Share2 className="mr-2 h-4 w-4" /> Envoyer sur WhatsApp
+              </Button>
+              <Button variant="ghost" onClick={() => setIsSuccessOpen(false)}>
+                Nouvelle Vente
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

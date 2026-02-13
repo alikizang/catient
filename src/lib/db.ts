@@ -33,11 +33,17 @@ export interface User {
   status: 'active' | 'inactive';
 }
 
+export type PaymentMethod = 'CASH' | 'MOBILE_MONEY' | 'CARD' | 'CREDIT';
+
 export interface Sale {
   id?: string;
   date: Timestamp;
   customerName: string;
+  customerPhone?: string; // New field for whatsapp
   total: number;
+  paymentMethod: PaymentMethod; // New field
+  amountPaid?: number; // New field (for cash change)
+  reference?: string; // New field (MM ref)
   items: Array<{
     productId: string;
     name: string;
