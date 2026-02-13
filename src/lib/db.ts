@@ -10,7 +10,9 @@ import {
   where,
   doc,
   updateDoc,
-  runTransaction
+  runTransaction,
+  writeBatch,
+  increment
 } from "firebase/firestore";
 
 // --- Types ---
@@ -139,50 +141,46 @@ export async function getAllSales() {
 
 export async function addSale(sale: Omit<Sale, "id">) {
   try {
-    return await runTransaction(db, async (transaction) => {
-      // 1. Create a reference for the new sale
-      const saleRef = doc(collection(db, "sales"));
-      const saleId = saleRef.id;
+    // Use writeBatch instead of runTransaction for offline support
+    const batch = writeBatch(db);
+
+    // 1. Create a reference for the new sale
+    const saleRef = doc(collection(db, "sales"));
+    const saleId = saleRef.id;
+    
+    // 2. Process each item in the sale
+    for (const item of sale.items) {
+      const productRef = doc(db, "products", item.productId);
       
-      // 2. Process each item in the sale
-      for (const item of sale.items) {
-        const productRef = doc(db, "products", item.productId);
-        const productDoc = await transaction.get(productRef);
-        
-        if (!productDoc.exists()) {
-          throw "Product does not exist: " + item.productId;
-        }
-        
-        const currentData = productDoc.data();
-        const currentQty = currentData.quantity || 0;
-        const newQty = currentQty - item.quantity;
-        
-        // Update product stock
-        transaction.update(productRef, { quantity: newQty });
-
-        // Create a stock movement record
-        const movementRef = doc(collection(db, "movements"));
-        transaction.set(movementRef, {
-          date: sale.date || Timestamp.now(),
-          type: 'OUT',
-          productId: item.productId,
-          productName: item.name,
-          quantity: item.quantity,
-          reason: `Vente #${sale.reference || saleId.slice(0, 6)}`,
-          performedBy: "Caisse" 
-        });
-      }
-
-      // 3. Commit the sale
-      transaction.set(saleRef, {
-        ...sale,
-        date: sale.date || Timestamp.now()
+      // Update product stock using atomic increment (works offline)
+      batch.update(productRef, { 
+        quantity: increment(-item.quantity) 
       });
 
-      return saleRef;
+      // Create a stock movement record
+      const movementRef = doc(collection(db, "movements"));
+      batch.set(movementRef, {
+        date: sale.date || Timestamp.now(),
+        type: 'OUT',
+        productId: item.productId,
+        productName: item.name,
+        quantity: item.quantity,
+        reason: `Vente #${sale.reference || saleId.slice(0, 6)}`,
+        performedBy: "Caisse" 
+      });
+    }
+
+    // 3. Commit the sale
+    batch.set(saleRef, {
+      ...sale,
+      date: sale.date || Timestamp.now()
     });
+
+    await batch.commit();
+    return saleRef;
+
   } catch (e) {
-    console.error("Transaction failed: ", e);
+    console.error("Batch failed: ", e);
     throw e;
   }
 }
