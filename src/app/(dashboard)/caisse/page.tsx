@@ -66,10 +66,17 @@ export default function CaissePage() {
     loadData()
   }, [])
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Optimisation de la recherche : filtrage direct sans state dérivé complexe
+  // La recherche est déjà instantanée car nous filtrons une liste locale 'products'
+  // Si lenteur perçue, c'est peut-être dû au rendu de la liste ou au focus
+  const filteredProducts = products.filter(p => {
+    const searchLower = searchQuery.toLowerCase().trim()
+    if (!searchLower) return true
+    return (
+      p.name.toLowerCase().includes(searchLower) ||
+      p.sku.toLowerCase().includes(searchLower)
+    )
+  })
 
   const addToCart = (product: Product) => {
     setCart(prev => {
