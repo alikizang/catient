@@ -37,19 +37,19 @@ const allItems = [
     title: "Dashboard",
     url: "/",
     icon: Home,
-    roles: ["admin", "manager", "cashier", "stock_keeper"],
+    roles: ["SUPERADMIN", "MANAGER", "CAISSE", "STOCK"],
   },
   {
     title: "Caisse",
     url: "/caisse",
     icon: ShoppingCart,
-    roles: ["admin", "manager", "cashier"],
+    roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
   },
   {
     title: "Stock",
     url: "/stock",
     icon: Package,
-    roles: ["admin", "manager", "stock_keeper"],
+    roles: ["SUPERADMIN", "MANAGER", "STOCK"],
     items: [
       { title: "Produits", url: "/stock/products" },
       { title: "Fournisseurs", url: "/stock/suppliers" },
@@ -60,19 +60,19 @@ const allItems = [
     title: "Ventes",
     url: "/ventes",
     icon: FileText,
-    roles: ["admin", "manager", "cashier"],
+    roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
   },
   {
     title: "Utilisateurs",
     url: "/utilisateurs",
     icon: Users,
-    roles: ["admin"],
+    roles: ["SUPERADMIN"],
   },
   {
     title: "Rapports",
     url: "/rapports",
     icon: BarChart3,
-    roles: ["admin", "manager"],
+    roles: ["SUPERADMIN", "MANAGER"],
   },
 ]
 
