@@ -27,7 +27,7 @@ import { signOut } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { PERMISSIONS } from "@/config/permissions"
-import { SeedDatabaseButton } from "@/components/seed-database-button"
+// import { SeedDatabaseButton } from "@/components/seed-database-button"
 import { usePWA } from "@/contexts/pwa-context"
 
 export function AppSidebar() {
@@ -102,9 +102,9 @@ export function AppSidebar() {
               </div>
             </SidebarMenuItem>
           )}
-          <SidebarMenuItem>
+          {/* <SidebarMenuItem>
             <SeedDatabaseButton />
-          </SidebarMenuItem>
+          </SidebarMenuItem> */}
           {isInstallable && !isAppInstalled && (
             <SidebarMenuItem>
               <SidebarMenuButton onClick={install} tooltip="Installer l'application">
