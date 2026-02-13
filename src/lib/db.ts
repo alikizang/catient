@@ -6,7 +6,10 @@ import {
   query, 
   orderBy, 
   limit,
-  Timestamp
+  Timestamp,
+  where,
+  doc,
+  updateDoc
 } from "firebase/firestore";
 
 // --- Types ---
@@ -14,7 +17,7 @@ export interface Product {
   id?: string;
   name: string;
   sku: string;
-  category?: string;
+  category: string;
   price: number;
   quantity: number;
   minStock: number;
@@ -27,6 +30,39 @@ export interface User {
   email: string;
   role: string;
   status: 'active' | 'inactive';
+}
+
+export interface Sale {
+  id?: string;
+  date: Timestamp;
+  customerName: string;
+  total: number;
+  items: Array<{
+    productId: string;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+}
+
+export interface Supplier {
+  id?: string;
+  name: string;
+  contact: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+export interface StockMovement {
+  id?: string;
+  date: Timestamp;
+  type: 'IN' | 'OUT';
+  productId: string;
+  productName: string;
+  quantity: number;
+  reason: string;
+  performedBy: string;
 }
 
 // --- Products ---
@@ -44,7 +80,6 @@ export async function addProduct(product: Omit<Product, "id">) {
 }
 
 export async function updateProduct(id: string, product: Partial<Product>) {
-  const { doc, updateDoc } = await import("firebase/firestore");
   const productRef = doc(db, "products", id);
   await updateDoc(productRef, product);
 }
@@ -56,7 +91,6 @@ export async function getUsers() {
 }
 
 export async function getUserRole(email: string): Promise<string | null> {
-  const { where } = await import("firebase/firestore");
   const q = query(collection(db, "users"), where("email", "==", email), limit(1));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
@@ -64,7 +98,6 @@ export async function getUserRole(email: string): Promise<string | null> {
 }
 
 export async function getUserProfile(email: string): Promise<User | null> {
-  const { where } = await import("firebase/firestore");
   const q = query(collection(db, "users"), where("email", "==", email), limit(1));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
@@ -72,7 +105,6 @@ export async function getUserProfile(email: string): Promise<User | null> {
 }
 
 export async function updateUser(id: string, data: Partial<User>) {
-  const { doc, updateDoc } = await import("firebase/firestore");
   const userRef = doc(db, "users", id);
   await updateDoc(userRef, data);
 }
@@ -88,5 +120,37 @@ export async function addUser(user: Omit<User, "id">) {
 export async function getRecentSales() {
   const q = query(collection(db, "sales"), orderBy("date", "desc"), limit(5));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale));
+}
+
+export async function addSale(sale: Omit<Sale, "id">) {
+  return await addDoc(collection(db, "sales"), {
+    ...sale,
+    date: sale.date || Timestamp.now()
+  });
+}
+
+// --- Suppliers ---
+export async function getSuppliers() {
+  const q = query(collection(db, "suppliers"), orderBy("name"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier));
+}
+
+export async function addSupplier(supplier: Omit<Supplier, "id">) {
+  return await addDoc(collection(db, "suppliers"), supplier);
+}
+
+// --- Stock Movements ---
+export async function getStockMovements() {
+  const q = query(collection(db, "movements"), orderBy("date", "desc"), limit(20));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StockMovement));
+}
+
+export async function addStockMovement(movement: Omit<StockMovement, "id">) {
+  return await addDoc(collection(db, "movements"), {
+    ...movement,
+    date: movement.date || Timestamp.now()
+  });
 }

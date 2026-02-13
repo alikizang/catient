@@ -25,6 +25,7 @@ import { signOut } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { PERMISSIONS } from "@/config/permissions"
+import { SeedDatabaseButton } from "@/components/seed-database-button"
 
 export function AppSidebar() {
   const router = useRouter()
@@ -91,6 +92,9 @@ export function AppSidebar() {
               </div>
             </SidebarMenuItem>
           )}
+          <SidebarMenuItem>
+            <SeedDatabaseButton />
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleSignOut} tooltip="Déconnexion">
               <LogOut />
