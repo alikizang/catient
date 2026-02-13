@@ -52,7 +52,7 @@ export function AppSidebar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Wrench className="size-4" />
           </div>
-          <div className="flex flex-col gap-0.5 leading-none">
+          <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
             <span className="font-semibold">Çatient</span>
             <span className="">Services</span>
           </div>
@@ -85,7 +85,7 @@ export function AppSidebar() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
                   <Users className="size-4" />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="truncate font-semibold">{userProfile.name}</span>
                   <span className="truncate text-xs text-muted-foreground">{userProfile.role}</span>
                 </div>
