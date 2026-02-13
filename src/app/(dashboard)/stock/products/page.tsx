@@ -76,7 +76,7 @@ export default function ProductsPage() {
 
   return (
     <div className="flex-1 space-y-4 pt-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
         <div className="flex items-center gap-2">
           <h2 className="text-3xl font-bold tracking-tight">Produits</h2>
           {!loading && (
@@ -85,12 +85,14 @@ export default function ProductsPage() {
             </Badge>
           )}
         </div>
-        <div className="flex items-center space-x-2">
-          <Button onClick={handleAddProduct}>
-            <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
-          </Button>
+          <div className="flex items-center space-x-2 w-full md:w-auto mt-2 md:mt-0">
+            <Button onClick={handleAddProduct} className="w-full md:w-auto">
+              <Plus className="mr-2 h-4 w-4" /> 
+              <span className="hidden md:inline">Ajouter un produit</span>
+              <span className="md:hidden">Ajouter</span>
+            </Button>
+          </div>
         </div>
-      </div>
       <div className="flex items-center space-x-2">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
