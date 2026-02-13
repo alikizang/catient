@@ -17,6 +17,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+} from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import jsPDF from 'jspdf'
@@ -277,11 +285,11 @@ export default function CaissePage() {
                       <div>
                         <h3 className="font-semibold truncate" title={product.name}>{product.name}</h3>
                         <p className="text-sm text-muted-foreground">{product.sku}</p>
-                        <div className="flex justify-between items-center mt-1">
-                          <p className="font-bold text-primary">{product.price.toLocaleString()} F</p>
+                        <div className="flex flex-col items-start gap-1 mt-1 md:flex-row md:justify-between md:items-center">
                           <span className={`text-xs px-1.5 py-0.5 rounded-full ${product.quantity > product.minStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             Stock: {product.quantity}
                           </span>
+                          <p className="font-bold text-primary">{product.price.toLocaleString()} F</p>
                         </div>
                       </div>
                     </CardContent>
@@ -293,8 +301,8 @@ export default function CaissePage() {
         </Card>
       </div>
 
-      {/* Cart Area */}
-      <div className="w-full md:w-[400px] flex flex-col h-full">
+      {/* Cart Area - Desktop */}
+      <div className="hidden md:flex w-full md:w-[400px] flex-col h-full">
         <Card className="flex-1 flex flex-col h-full border-l shadow-lg overflow-hidden">
           <CardHeader className="p-4 border-b bg-muted/20 shrink-0">
             <CardTitle className="flex items-center justify-between">
@@ -381,6 +389,107 @@ export default function CaissePage() {
             </div>
           </CardFooter>
         </Card>
+      </div>
+
+      {/* Mobile Cart Bottom Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-background border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button className="w-full h-14 text-lg font-bold flex justify-between items-center px-6">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                <span>{cart.length} articles</span>
+              </div>
+              <span>{total.toLocaleString()} FCFA</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 rounded-t-xl">
+            <SheetHeader className="p-4 border-b bg-muted/20 shrink-0">
+              <SheetTitle className="flex items-center justify-between">
+                <span>Panier actuel</span>
+                <span className="text-sm font-normal text-muted-foreground">
+                  {cart.length} articles
+                </span>
+              </SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto p-0">
+              {cart.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
+                  <ShoppingCart className="h-12 w-12 opacity-20" />
+                  <p>Le panier est vide</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {cart.map((item) => (
+                    <div key={item.product.id} className="p-4 flex gap-4 items-start hover:bg-muted/5">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium truncate" title={item.product.name}>
+                          {item.product.name}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {item.product.price.toLocaleString()} F x {item.quantity}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(item.product.id!, -1)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-6 text-center font-medium">{item.quantity}</span>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(item.product.id!, 1)}
+                          disabled={item.quantity >= item.product.quantity}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="font-bold min-w-[70px] text-right shrink-0">
+                        {(item.product.price * item.quantity).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-0 flex flex-col border-t bg-muted/20 shrink-0">
+              <div className="p-4 w-full space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Sous-total</span>
+                  <span>{subtotal.toLocaleString()} FCFA</span>
+                </div>
+                <Separator className="my-2" />
+                <div className="flex justify-between text-xl font-bold">
+                  <span>Total</span>
+                  <span className="text-primary">{total.toLocaleString()} FCFA</span>
+                </div>
+              </div>
+              <div className="p-4 pt-0 w-full grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-12 text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10"
+                  onClick={clearCart}
+                  disabled={cart.length === 0 || processing}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Annuler
+                </Button>
+                <Button 
+                  className="w-full h-12 text-lg font-bold"
+                  onClick={() => setIsCheckoutOpen(true)}
+                  disabled={cart.length === 0 || processing}
+                >
+                  Encaisser
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Checkout Dialog */}
