@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "Çatient Services",
   description: "Gestion de stock et vente pour pièces détachées moto",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
