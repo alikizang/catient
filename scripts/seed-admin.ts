@@ -1,5 +1,5 @@
-const admin = require('firebase-admin');
-const dotenv = require('dotenv');
+import admin from 'firebase-admin';
+import dotenv from 'dotenv';
 
 // Load environment variables from .env.local
 dotenv.config({ path: '.env.local' });

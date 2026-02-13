@@ -31,9 +31,9 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password)
       router.push("/")
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
-      if (err.code === 'auth/invalid-credential') {
+      if ((err as { code?: string }).code === 'auth/invalid-credential') {
         setError("Email ou mot de passe incorrect.")
       } else {
         setError("Une erreur est survenue lors de la connexion.")

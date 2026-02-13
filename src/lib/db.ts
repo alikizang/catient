@@ -2,13 +2,8 @@ import { db } from "./firebase";
 import { 
   collection, 
   getDocs, 
-  getDoc, 
   addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
   query, 
-  where, 
   orderBy, 
   limit,
   Timestamp

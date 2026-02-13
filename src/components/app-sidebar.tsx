@@ -1,9 +1,7 @@
+"use client"
+
 import {
-  Calendar,
   Home,
-  Inbox,
-  Search,
-  Settings,
   Package,
   ShoppingCart,
   Users,
@@ -11,8 +9,6 @@ import {
   BarChart3,
   LogOut,
   Wrench,
-  Battery,
-  Zap,
 } from "lucide-react"
 
 import {
@@ -29,6 +25,9 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { signOut } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 // Menu items.
 const items = [
@@ -70,6 +69,17 @@ const items = [
 ]
 
 export function AppSidebar() {
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth)
+      router.push("/login")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -105,11 +115,9 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Déconnexion">
-              <Link href="/api/auth/signout">
-                <LogOut />
-                <span>Déconnexion</span>
-              </Link>
+            <SidebarMenuButton onClick={handleSignOut} tooltip="Déconnexion">
+              <LogOut />
+              <span>Déconnexion</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
