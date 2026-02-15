@@ -125,6 +125,27 @@ export interface Transaction {
   performedBy: string;
 }
 
+export interface Invoice {
+  id?: string;
+  type: 'PROFORMA' | 'INVOICE';
+  number: string; // Ex: PRO-2023-001 or FAC-2023-001
+  date: Timestamp;
+  validUntil?: Timestamp; // For Proforma
+  clientId?: string;
+  clientName: string;
+  items: Array<{
+    productId: string;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  total: number;
+  status: 'DRAFT' | 'SENT' | 'CONVERTED_TO_SALE' | 'CANCELLED';
+  saleId?: string; // If converted
+  createdAt: Timestamp;
+  createdBy: string;
+}
+
 // --- Products ---
 export async function getProducts() {
   const q = query(collection(db, "products"), orderBy("name"));
@@ -411,6 +432,69 @@ export async function addPartnerTransaction(transaction: Omit<Transaction, "id">
     });
   } catch (e) {
     console.error("Transaction failed:", e);
+    throw e;
+  }
+}
+
+// --- Documents (Invoices/Proforma) ---
+export async function getInvoices() {
+  const q = query(collection(db, "invoices"), orderBy("createdAt", "desc"), limit(50));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
+}
+
+export async function addInvoice(invoice: Omit<Invoice, "id">) {
+  return await addDoc(collection(db, "invoices"), {
+    ...invoice,
+    createdAt: Timestamp.now()
+  });
+}
+
+export async function convertProformaToSale(invoiceId: string, saleData: Omit<Sale, "id">) {
+  try {
+    const batch = writeBatch(db);
+    
+    // 1. Create Sale
+    const saleRef = doc(collection(db, "sales"));
+    const saleId = saleRef.id;
+    
+    // Copy logic from addSale but in batch
+    // We need to update stock for each item
+    // Since we are in a batch, we can only do atomic increments, which is fine.
+    
+    // BUT we need to create stock movements too.
+    for (const item of saleData.items) {
+      const productRef = doc(db, "products", item.productId);
+      batch.update(productRef, { 
+        quantity: increment(-item.quantity) 
+      });
+
+      const movementRef = doc(collection(db, "movements"));
+      batch.set(movementRef, {
+        date: Timestamp.now(),
+        type: 'OUT',
+        productId: item.productId,
+        productName: item.name,
+        quantity: item.quantity,
+        reason: `Vente (Ex-Proforma #${invoiceId})`,
+        performedBy: "Caisse" 
+      });
+    }
+
+    batch.set(saleRef, { ...saleData, date: Timestamp.now() });
+
+    // 2. Update Invoice Status
+    const invoiceRef = doc(db, "invoices", invoiceId);
+    batch.update(invoiceRef, { 
+      status: 'CONVERTED_TO_SALE',
+      saleId: saleId
+    });
+
+    await batch.commit();
+    return saleRef;
+
+  } catch (e) {
+    console.error("Conversion failed:", e);
     throw e;
   }
 }
