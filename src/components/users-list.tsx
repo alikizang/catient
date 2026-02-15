@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Search, Shield, Loader2, Pencil, KeyRound } from "lucide-react"
+import { Plus, Search, Shield, Loader2, Pencil, KeyRound, Copy, Check } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -62,6 +62,13 @@ export function UsersList() {
   const [newUser, setNewUser] = useState({ name: "", email: "", role: "CAISSE" })
   const [adding, setAdding] = useState(false)
 
+  // Reset Link State
+  const [resetLink, setResetLink] = useState<string | null>(null)
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
+  const [resettingUserEmail, setResettingUserEmail] = useState("")
+  const [generatingLink, setGeneratingLink] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   const fetchUsers = async () => {
     try {
       setLoading(true)
@@ -103,16 +110,41 @@ export function UsersList() {
     }
   }
 
-  const handleResetPassword = async (email: string) => {
+  const handleGenerateResetLink = async (email: string) => {
     try {
-      const { sendPasswordResetEmail } = await import("firebase/auth")
-      const { auth } = await import("@/lib/firebase")
+      setGeneratingLink(true)
+      setResettingUserEmail(email)
+      setIsResetDialogOpen(true)
+      setResetLink(null)
       
-      await sendPasswordResetEmail(auth, email)
-      toast.success(`Email de réinitialisation envoyé à ${email}`)
-    } catch (error) {
-      console.error("Error sending reset email:", error)
-      toast.error("Erreur lors de l'envoi de l'email")
+      const response = await fetch('/api/admin/generate-reset-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la génération du lien')
+      }
+      
+      setResetLink(data.link)
+    } catch (error: any) {
+      console.error("Error generating reset link:", error)
+      toast.error(error.message)
+      setIsResetDialogOpen(false)
+    } finally {
+      setGeneratingLink(false)
+    }
+  }
+
+  const copyToClipboard = () => {
+    if (resetLink) {
+      navigator.clipboard.writeText(resetLink)
+      setCopied(true)
+      toast.success("Lien copié !")
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -222,8 +254,8 @@ export function UsersList() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        onClick={() => handleResetPassword(user.email)}
-                        title="Envoyer email réinitialisation mot de passe"
+                        onClick={() => handleGenerateResetLink(user.email)}
+                        title="Générer lien de réinitialisation"
                       >
                         <KeyRound className="h-4 w-4 text-orange-500" />
                       </Button>
@@ -364,6 +396,42 @@ export function UsersList() {
               Ajouter
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lien de réinitialisation</DialogTitle>
+            <DialogDescription>
+              Ce lien permettra à <strong>{resettingUserEmail}</strong> de définir un nouveau mot de passe.
+            </DialogDescription>
+          </DialogHeader>
+
+          {generatingLink ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : resetLink ? (
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted rounded-md break-all text-sm font-mono border max-h-[100px] overflow-y-auto">
+                {resetLink}
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+                  Fermer
+                </Button>
+                <Button onClick={copyToClipboard}>
+                  {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                  {copied ? "Copié !" : "Copier le lien"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+             <div className="py-4 text-center text-muted-foreground">
+               Génération du lien en cours...
+             </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
