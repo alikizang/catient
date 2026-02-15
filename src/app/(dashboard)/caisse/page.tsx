@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Search, Trash2, ShoppingCart, Plus, Minus, Loader2, CreditCard, Banknote, Smartphone, Check, Printer, Share2, Receipt } from "lucide-react"
-import { getProducts, addSale, type Product, type Sale, type PaymentMethod } from "@/lib/db"
+import { getProducts, addSale, getPartners, addPartnerTransaction, type Product, type Sale, type PaymentMethod, type Partner } from "@/lib/db"
 import { toast } from "sonner"
 import { Timestamp } from "firebase/firestore"
 import {
@@ -38,6 +38,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+import { useAuth } from "@/contexts/auth-context"
+
 interface CartItem {
   product: Product
   quantity: number
@@ -45,6 +47,7 @@ interface CartItem {
 
 export default function CaissePage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [cart, setCart] = useState<CartItem[]>([])
@@ -56,14 +59,18 @@ export default function CaissePage() {
   const [mobileProvider, setMobileProvider] = useState<string>("MIXX_BY_YAS")
   const [amountPaid, setAmountPaid] = useState<string>("")
   const [reference, setReference] = useState("")
+  const [selectedClientId, setSelectedClientId] = useState<string>("")
   const [processing, setProcessing] = useState(false)
   const [lastSale, setLastSale] = useState<Sale | null>(null)
+  
+  const { userProfile } = useAuth()
 
   useEffect(() => {
     async function loadData() {
       try {
-        const data = await getProducts()
-        setProducts(data)
+        const [pData, partData] = await Promise.all([getProducts(), getPartners()])
+        setProducts(pData)
+        setPartners(partData)
       } catch (error) {
         console.error("Error loading products:", error)
         toast.error("Erreur de chargement des produits")
@@ -133,13 +140,27 @@ export default function CaissePage() {
     try {
       setProcessing(true)
       
+      let customerName = "Client Comptoir"
+      if (paymentMethod === 'CREDIT' && selectedClientId) {
+        const client = partners.find(p => p.id === selectedClientId)
+        if (client) customerName = client.name
+      } else if (reference) {
+         // Use reference as customer name if provided in credit note, or keep generic
+         // Actually, for credit sales, we MUST have a partner ID.
+         // If generic credit note, we store it in reference.
+         if (paymentMethod === 'CREDIT' && !selectedClientId) {
+            // Allow generic credit? Ideally not.
+            customerName = reference || "Client Crédit (Inconnu)"
+         }
+      }
+
       const sale: Omit<Sale, "id"> = {
         date: Timestamp.now(),
-        customerName: "Client Comptoir",
+        customerName,
         total: total,
         paymentMethod,
-        amountPaid: amountPaid ? parseFloat(amountPaid) : total,
-        reference,
+        amountPaid: amountPaid ? parseFloat(amountPaid) : (paymentMethod === 'CREDIT' ? 0 : total),
+        reference: paymentMethod === 'CREDIT' && selectedClientId ? `Dette Client: ${customerName}` : reference,
         items: cart.map(item => ({
           productId: item.product.id!,
           name: item.product.name,
@@ -148,7 +169,20 @@ export default function CaissePage() {
         }))
       }
 
-      await addSale(sale)
+      const saleRef = await addSale(sale)
+      
+      // If Credit Sale linked to Partner, add Debt Transaction
+      if (paymentMethod === 'CREDIT' && selectedClientId) {
+        await addPartnerTransaction({
+          partnerId: selectedClientId,
+          type: 'INVOICE',
+          amount: total, // Positive amount = Increases Debt (Client owes us)
+          description: `Achat Crédit (Vente #${saleRef.id})`,
+          referenceId: saleRef.id,
+          performedBy: userProfile?.name || "Caisse",
+          date: Timestamp.now()
+        })
+      }
       
       // Update local stock optimistically
       setProducts(prev => prev.map(p => {
@@ -594,16 +628,34 @@ export default function CaissePage() {
               </TabsContent>
 
               <TabsContent value="CREDIT" className="space-y-4">
-                <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
-                  <Receipt className="h-8 w-8 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Vente à crédit. Assurez-vous d'avoir noté le nom du client.
-                    </p>
-                    <Label htmlFor="credit-note">Note / Nom (Optionnel)</Label>
+                <div className="flex flex-col gap-4 p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-4">
+                    <Receipt className="h-8 w-8 text-muted-foreground" />
+                    <div className="flex-1">
+                      <Label className="mb-2 block">Client (Compte)</Label>
+                      <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner Client" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {partners.filter(p => p.type === 'CLIENT').map(p => (
+                            <SelectItem key={p.id} value={p.id!}>
+                              {p.name} (Solde: {p.balance} F)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Sélectionnez un client enregistré pour ajouter à sa dette.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="credit-note">Note (Optionnel)</Label>
                     <Input 
                       id="credit-note" 
-                      placeholder="Ex: Patron, Garage Michel..." 
+                      placeholder="Ex: Passe payer demain..." 
                       value={reference}
                       onChange={(e) => setReference(e.target.value)}
                     />
