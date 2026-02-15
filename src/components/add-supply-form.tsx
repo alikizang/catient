@@ -20,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 import { getSuppliers, getProducts, addSupply, type Product, type Supplier } from "@/lib/db"
