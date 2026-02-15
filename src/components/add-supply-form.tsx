@@ -37,7 +37,7 @@ import { Timestamp } from "firebase/firestore"
 
 const formSchema = z.object({
   supplierId: z.string().min(1, "Fournisseur requis"),
-  isCredit: z.boolean().default(false),
+  isCredit: z.boolean().default(false).optional(),
 })
 
 interface AddSupplyFormProps {
