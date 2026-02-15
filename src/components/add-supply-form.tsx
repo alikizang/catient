@@ -30,12 +30,14 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Loader2, Plus, Trash2 } from "lucide-react"
-import { getSuppliers, getProducts, addSupply, type Product, type Supplier } from "@/lib/db"
+import { getSuppliers, getProducts, addSupply, getPartners, addPartnerTransaction, type Product, type Supplier, type Partner } from "@/lib/db"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { Timestamp } from "firebase/firestore"
 
 const formSchema = z.object({
   supplierId: z.string().min(1, "Fournisseur requis"),
+  isCredit: z.boolean().default(false),
 })
 
 interface AddSupplyFormProps {
@@ -51,7 +53,7 @@ interface SupplyItem {
 
 export function AddSupplyForm({ onSuccess }: AddSupplyFormProps) {
   const [loading, setLoading] = useState(false)
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [suppliers, setSuppliers] = useState<Partner[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [items, setItems] = useState<SupplyItem[]>([])
   
@@ -64,13 +66,15 @@ export function AddSupplyForm({ onSuccess }: AddSupplyFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       supplierId: "",
+      isCredit: false,
     },
   })
 
   useEffect(() => {
     async function loadData() {
-      const [sData, pData] = await Promise.all([getSuppliers(), getProducts()])
-      setSuppliers(sData)
+      const [pData, partners] = await Promise.all([getProducts(), getPartners()])
+      // Filter only SUPPLIER type partners
+      setSuppliers(partners.filter(p => p.type === 'SUPPLIER'))
       setProducts(pData)
     }
     loadData()
@@ -105,15 +109,28 @@ export function AddSupplyForm({ onSuccess }: AddSupplyFormProps) {
     try {
       setLoading(true)
       const supplier = suppliers.find(s => s.id === values.supplierId)
+      const totalCost = items.reduce((acc, item) => acc + (item.quantity * item.buyingPrice), 0)
       
-      await addSupply({
+      const supplyRef = await addSupply({
         supplierId: values.supplierId,
         supplierName: supplier?.name || "Inconnu",
         date: Timestamp.now(),
         items: items,
-        totalCost: items.reduce((acc, item) => acc + (item.quantity * item.buyingPrice), 0),
+        totalCost: totalCost,
         status: 'COMPLETED'
       })
+      
+      if (values.isCredit) {
+        await addPartnerTransaction({
+           partnerId: values.supplierId,
+           type: 'INVOICE',
+           amount: -totalCost, // Negative = We owe them
+           description: `Achat Stock Crédit (Approv #${supplyRef.id})`,
+           referenceId: supplyRef.id,
+           performedBy: "Admin",
+           date: Timestamp.now()
+        })
+      }
       
       onSuccess()
     } catch (error) {
@@ -149,6 +166,29 @@ export function AddSupplyForm({ onSuccess }: AddSupplyFormProps) {
                 </SelectContent>
               </Select>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="isCredit"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>
+                  Achat à Crédit (Non payé)
+                </FormLabel>
+                <p className="text-sm text-muted-foreground">
+                  Cochez cette case si vous n'avez pas encore payé le fournisseur.
+                </p>
+              </div>
             </FormItem>
           )}
         />
