@@ -7,7 +7,8 @@ import {
   BarChart3,
   Truck,
   Wallet,
-  PieChart
+  PieChart,
+  Handshake
 } from "lucide-react"
 
 export const PERMISSIONS = [
@@ -49,7 +50,7 @@ export const PERMISSIONS = [
   {
     title: "Partenaires",
     url: "/partenaires",
-    icon: Users,
+    icon: Handshake,
     roles: ["SUPERADMIN", "MANAGER"],
   },
   {
