@@ -63,11 +63,7 @@ export function AddExpenseForm({ onSuccess }: AddExpenseFormProps) {
         description: values.description,
         amount: parseFloat(values.amount),
         performedBy: userProfile?.name || "Inconnu",
-        status: values.category === 'FIXED' ? 'PENDING' : 'APPROVED', // Variable expenses by cashier are auto-approved? Or should be pending? Let's say pending if amount is high?
-        // Let's make everything PENDING for validation by Admin except small amounts?
-        // For now: Default PENDING for all to be safe and allow Admin to review.
-        // Actually, if Cashier buys credit, money is gone. It should be "Declared".
-        // Let's set status to PENDING (meaning "Declared but not yet reconciled in accounting").
+        status: 'PENDING', // Always PENDING (Declared) first, to be Verified by Admin later.
         date: Timestamp.now()
       })
       onSuccess()

@@ -62,7 +62,7 @@ export default function ExpensesPage() {
     try {
       await updateExpenseStatus(id, status)
       setExpenses(prev => prev.map(e => e.id === id ? { ...e, status } : e))
-      toast.success(`Dépense ${status === 'APPROVED' ? 'approuvée' : 'rejetée'}`)
+      toast.success(`Dépense ${status === 'APPROVED' ? 'pointée (validée)' : 'signalée (rejetée)'}`)
     } catch (error) {
       toast.error("Erreur lors de la mise à jour")
     }
@@ -117,7 +117,7 @@ export default function ExpensesPage() {
       <Tabs defaultValue="all" className="w-full">
         <TabsList>
           <TabsTrigger value="all">Toutes</TabsTrigger>
-          <TabsTrigger value="pending">En attente</TabsTrigger>
+          <TabsTrigger value="pending">À Pointer</TabsTrigger>
           <TabsTrigger value="fixed">Charges Fixes</TabsTrigger>
           <TabsTrigger value="variable">Charges Variables</TabsTrigger>
         </TabsList>
@@ -220,8 +220,8 @@ function ExpensesTable({
                     expense.status === 'APPROVED' ? 'default' : 
                     expense.status === 'REJECTED' ? 'destructive' : 'secondary'
                   }>
-                    {expense.status === 'APPROVED' ? 'Validé' : 
-                     expense.status === 'REJECTED' ? 'Rejeté' : 'En attente'}
+                    {expense.status === 'APPROVED' ? 'Pointé' : 
+                     expense.status === 'REJECTED' ? 'Rejeté' : 'Déclaré'}
                   </Badge>
                 </TableCell>
                 {isAdmin && (
@@ -233,7 +233,7 @@ function ExpensesTable({
                           variant="ghost" 
                           className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100"
                           onClick={() => onUpdateStatus(expense.id!, 'APPROVED')}
-                          title="Valider"
+                          title="Valider / Pointer"
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -242,7 +242,7 @@ function ExpensesTable({
                           variant="ghost" 
                           className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-100"
                           onClick={() => onUpdateStatus(expense.id!, 'REJECTED')}
-                          title="Rejeter"
+                          title="Signaler un écart"
                         >
                           <X className="h-4 w-4" />
                         </Button>
