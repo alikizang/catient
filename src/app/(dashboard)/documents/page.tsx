@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { getInvoices, getAllSales, type Invoice, type Sale } from "@/lib/db"
+import { getInvoices, getAllSales, getSettings, type Invoice, type Sale, type AppSettings } from "@/lib/db"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { CreateInvoiceForm } from "@/components/create-invoice-form"
@@ -39,13 +39,19 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [settings, setSettings] = useState<AppSettings | null>(null)
 
   const loadData = async () => {
     try {
       setLoading(true)
-      const [invData, salesData] = await Promise.all([getInvoices(), getAllSales()])
+      const [invData, salesData, settingsData] = await Promise.all([
+        getInvoices(), 
+        getAllSales(),
+        getSettings()
+      ])
       setInvoices(invData)
       setSales(salesData)
+      setSettings(settingsData)
     } catch (error) {
       console.error("Error fetching docs:", error)
       toast.error("Erreur lors du chargement des documents")
@@ -66,19 +72,37 @@ export default function DocumentsPage() {
 
   const generateReceiptPDF = (sale: Sale) => {
     const doc = new jsPDF()
-    doc.setFontSize(18)
-    doc.text("CATIENT SERVICES", 105, 20, { align: "center" })
-    doc.setFontSize(12)
-    doc.text("REÇU DE CAISSE", 105, 28, { align: "center" })
     
+    // Header
+    doc.setFontSize(18)
+    doc.text(settings?.companyName || "CATIENT SERVICES", 105, 20, { align: "center" })
+    doc.setFontSize(10)
+    if (settings?.companyPhone) {
+      doc.text(`Tel: ${settings.companyPhone}`, 105, 25, { align: "center" })
+    }
+    
+    doc.setFontSize(12)
+    doc.text(settings?.receiptHeader || "REÇU DE CAISSE", 105, 35, { align: "center" })
+    
+    // Info
     doc.setFontSize(10)
     const dateStr = sale.date?.toDate ? sale.date.toDate().toLocaleString() : 'N/A'
-    doc.text(`Date: ${dateStr}`, 14, 40)
-    doc.text(`Client: ${sale.customerName}`, 14, 45)
-    doc.text(`Paiement: ${sale.paymentMethod}`, 14, 50)
+    doc.text(`Date: ${dateStr}`, 14, 45)
+    doc.text(`Client: ${sale.customerName}`, 14, 50)
+    
+    let paymentLabel = sale.paymentMethod as string
+    if (sale.paymentMethod === 'MOBILE_MONEY' && sale.reference) {
+      paymentLabel = `MOBILE MONEY`
+    }
+    
+    doc.text(`Paiement: ${paymentLabel}`, 14, 55)
+    if(sale.reference) {
+      doc.text(`Réf: ${sale.reference}`, 14, 60)
+    }
 
+    // Table
     autoTable(doc, {
-      startY: 60,
+      startY: 65,
       head: [['Produit', 'Qté', 'Prix U.', 'Total']],
       body: sale.items.map(item => [
         item.name,
@@ -86,33 +110,70 @@ export default function DocumentsPage() {
         item.price.toLocaleString(),
         (item.price * item.quantity).toLocaleString()
       ]),
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: 2 },
+      headStyles: { fillColor: [220, 220, 220], textColor: 20, fontStyle: 'bold' }
     })
 
-    const finalY = (doc as any).lastAutoTable.finalY || 65
+    // Total
+    const finalY = (doc as any).lastAutoTable.finalY || 70
     doc.setFontSize(12)
-    doc.text(`TOTAL: ${sale.total.toLocaleString()} FCFA`, 14, finalY + 10)
+    doc.setFont("helvetica", "bold")
+    const currency = settings?.currency || "FCFA"
+    doc.text(`TOTAL: ${sale.total.toLocaleString()} ${currency}`, 14, finalY + 10)
     
+    if (sale.paymentMethod === 'CASH' && sale.amountPaid) {
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Reçu: ${sale.amountPaid.toLocaleString()} ${currency}`, 14, finalY + 16)
+      doc.text(`Rendu: ${(sale.amountPaid - sale.total).toLocaleString()} ${currency}`, 14, finalY + 21)
+    }
+    
+    // Footer
+    if (settings?.receiptFooter) {
+      doc.setFontSize(8)
+      doc.text(settings.receiptFooter, 105, finalY + 30, { align: "center" })
+    }
+
     doc.save(`recu_${sale.id}.pdf`)
   }
 
   const generateInvoicePDF = (invoice: Invoice) => {
     const doc = new jsPDF()
     doc.setFontSize(18)
-    doc.text("CATIENT SERVICES", 105, 20, { align: "center" })
-    doc.setFontSize(12)
-    doc.text(invoice.type === 'PROFORMA' ? "FACTURE PROFORMA" : "FACTURE", 105, 28, { align: "center" })
+    doc.text(settings?.companyName || "CATIENT SERVICES", 105, 20, { align: "center" })
     
     doc.setFontSize(10)
-    doc.text(`N°: ${invoice.number}`, 14, 40)
+    let yPos = 25
+    if (settings?.companyAddress) {
+      doc.text(settings.companyAddress, 105, yPos, { align: "center" })
+      yPos += 5
+    }
+    if (settings?.companyPhone) {
+      doc.text(`Tel: ${settings.companyPhone}`, 105, yPos, { align: "center" })
+      yPos += 5
+    }
+    if (settings?.companyEmail) {
+      doc.text(`Email: ${settings.companyEmail}`, 105, yPos, { align: "center" })
+      yPos += 10
+    } else {
+      yPos += 5
+    }
+
+    doc.setFontSize(12)
+    doc.text(invoice.type === 'PROFORMA' ? "FACTURE PROFORMA" : "FACTURE", 105, yPos, { align: "center" })
+    
+    doc.setFontSize(10)
+    doc.text(`N°: ${invoice.number}`, 14, yPos + 12)
     const dateStr = invoice.date?.toDate ? invoice.date.toDate().toLocaleDateString() : 'N/A'
-    doc.text(`Date: ${dateStr}`, 14, 45)
-    doc.text(`Client: ${invoice.clientName}`, 14, 50)
+    doc.text(`Date: ${dateStr}`, 14, yPos + 17)
+    doc.text(`Client: ${invoice.clientName}`, 14, yPos + 22)
     if (invoice.validUntil) {
-      doc.text(`Valide jusqu'au: ${invoice.validUntil.toDate().toLocaleDateString()}`, 14, 55)
+      doc.text(`Valide jusqu'au: ${invoice.validUntil.toDate().toLocaleDateString()}`, 14, yPos + 27)
     }
 
     autoTable(doc, {
-      startY: 65,
+      startY: yPos + 35,
       head: [['Produit', 'Qté', 'Prix U.', 'Total']],
       body: invoice.items.map(item => [
         item.name,
@@ -124,7 +185,8 @@ export default function DocumentsPage() {
 
     const finalY = (doc as any).lastAutoTable.finalY || 70
     doc.setFontSize(12)
-    doc.text(`TOTAL: ${invoice.total.toLocaleString()} FCFA`, 14, finalY + 10)
+    const currency = settings?.currency || "FCFA"
+    doc.text(`TOTAL: ${invoice.total.toLocaleString()} ${currency}`, 14, finalY + 10)
     
     doc.save(`${invoice.type}_${invoice.number}.pdf`)
   }

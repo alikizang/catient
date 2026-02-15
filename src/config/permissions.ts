@@ -2,16 +2,17 @@ import {
   Home,
   Package,
   ShoppingCart,
-  Users,
   FileText,
   BarChart3,
   Truck,
   Wallet,
   PieChart,
-  Handshake
+  Handshake,
+  Settings
 } from "lucide-react"
 
 export const PERMISSIONS = [
+  // --- Opérations Quotidiennes (Vente) ---
   {
     title: "Dashboard",
     url: "/",
@@ -25,6 +26,14 @@ export const PERMISSIONS = [
     roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
   },
   {
+    title: "Ventes",
+    url: "/ventes",
+    icon: FileText,
+    roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
+  },
+
+  // --- Gestion des Stocks & Achats ---
+  {
     title: "Stock",
     url: "/stock",
     icon: Package,
@@ -36,15 +45,9 @@ export const PERMISSIONS = [
     ]
   },
   {
-    title: "Ventes",
-    url: "/ventes",
-    icon: FileText,
-    roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
-  },
-  {
-    title: "Utilisateurs",
-    url: "/utilisateurs",
-    icon: Users,
+    title: "Approvisionnements",
+    url: "/approvisionnements",
+    icon: Truck,
     roles: ["SUPERADMIN"],
   },
   {
@@ -52,6 +55,14 @@ export const PERMISSIONS = [
     url: "/partenaires",
     icon: Handshake,
     roles: ["SUPERADMIN", "MANAGER"],
+  },
+
+  // --- Finance & Administration ---
+  {
+    title: "Dépenses",
+    url: "/depenses",
+    icon: Wallet,
+    roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
   },
   {
     title: "Documents",
@@ -66,21 +77,15 @@ export const PERMISSIONS = [
     roles: ["SUPERADMIN", "MANAGER"],
   },
   {
-    title: "Approvisionnements",
-    url: "/approvisionnements",
-    icon: Truck,
-    roles: ["SUPERADMIN"],
-  },
-  {
-    title: "Dépenses",
-    url: "/depenses",
-    icon: Wallet,
-    roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
-  },
-  {
     title: "Rentabilité",
     url: "/finance",
     icon: PieChart,
+    roles: ["SUPERADMIN"],
+  },
+  {
+    title: "Paramètres",
+    url: "/settings",
+    icon: Settings,
     roles: ["SUPERADMIN"],
   },
 ]

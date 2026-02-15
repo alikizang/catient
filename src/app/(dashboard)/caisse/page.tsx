@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Search, Trash2, ShoppingCart, Plus, Minus, Loader2, CreditCard, Banknote, Smartphone, Check, Printer, Share2, Receipt } from "lucide-react"
-import { getProducts, addSale, getPartners, addPartnerTransaction, type Product, type Sale, type PaymentMethod, type Partner } from "@/lib/db"
+import { getProducts, addSale, getPartners, addPartnerTransaction, getSettings, type Product, type Sale, type PaymentMethod, type Partner, type AppSettings } from "@/lib/db"
 import { toast } from "sonner"
 import { Timestamp } from "firebase/firestore"
 import {
@@ -62,15 +62,21 @@ export default function CaissePage() {
   const [selectedClientId, setSelectedClientId] = useState<string>("")
   const [processing, setProcessing] = useState(false)
   const [lastSale, setLastSale] = useState<Sale | null>(null)
+  const [settings, setSettings] = useState<AppSettings | null>(null)
   
   const { userProfile } = useAuth()
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [pData, partData] = await Promise.all([getProducts(), getPartners()])
+        const [pData, partData, settingsData] = await Promise.all([
+          getProducts(), 
+          getPartners(),
+          getSettings()
+        ])
         setProducts(pData)
         setPartners(partData)
+        setSettings(settingsData)
       } catch (error) {
         console.error("Error loading products:", error)
         toast.error("Erreur de chargement des produits")
@@ -211,32 +217,34 @@ export default function CaissePage() {
     
     // Header
     doc.setFontSize(18)
-    doc.text("CATIENT SERVICES", 105, 20, { align: "center" })
+    doc.text(settings?.companyName || "CATIENT SERVICES", 105, 20, { align: "center" })
+    doc.setFontSize(10)
+    if (settings?.companyPhone) {
+      doc.text(`Tel: ${settings.companyPhone}`, 105, 25, { align: "center" })
+    }
+    
     doc.setFontSize(12)
-    doc.text("REÇU DE CAISSE", 105, 28, { align: "center" })
+    doc.text(settings?.receiptHeader || "REÇU DE CAISSE", 105, 35, { align: "center" })
     
     // Info
     doc.setFontSize(10)
     const dateStr = sale.date?.toDate ? sale.date.toDate().toLocaleString() : new Date().toLocaleString()
-    doc.text(`Date: ${dateStr}`, 14, 40)
-    doc.text(`Client: ${sale.customerName}`, 14, 45)
+    doc.text(`Date: ${dateStr}`, 14, 45)
+    doc.text(`Client: ${sale.customerName}`, 14, 50)
     
     let paymentLabel = sale.paymentMethod as string
     if (sale.paymentMethod === 'MOBILE_MONEY' && sale.reference) {
-      // Try to detect provider from format or saved data (if we saved provider)
-      // Since we only saved ref, we display ref. 
-      // Ideally we should save provider in DB too, but for now let's just show method + ref
       paymentLabel = `MOBILE MONEY`
     }
     
-    doc.text(`Paiement: ${paymentLabel}`, 14, 50)
+    doc.text(`Paiement: ${paymentLabel}`, 14, 55)
     if(sale.reference) {
-      doc.text(`Réf: ${sale.reference}`, 14, 55)
+      doc.text(`Réf: ${sale.reference}`, 14, 60)
     }
 
     // Table
     autoTable(doc, {
-      startY: 60,
+      startY: 65,
       head: [['Produit', 'Qté', 'Prix U.', 'Total']],
       body: sale.items.map(item => [
         item.name,
@@ -250,16 +258,23 @@ export default function CaissePage() {
     })
 
     // Total
-    const finalY = (doc as any).lastAutoTable.finalY || 65
+    const finalY = (doc as any).lastAutoTable.finalY || 70
     doc.setFontSize(12)
     doc.setFont("helvetica", "bold")
-    doc.text(`TOTAL: ${sale.total.toLocaleString()} FCFA`, 14, finalY + 10)
+    const currency = settings?.currency || "FCFA"
+    doc.text(`TOTAL: ${sale.total.toLocaleString()} ${currency}`, 14, finalY + 10)
     
     if (sale.paymentMethod === 'CASH' && sale.amountPaid) {
       doc.setFontSize(10)
       doc.setFont("helvetica", "normal")
-      doc.text(`Reçu: ${sale.amountPaid.toLocaleString()} FCFA`, 14, finalY + 16)
-      doc.text(`Rendu: ${(sale.amountPaid - sale.total).toLocaleString()} FCFA`, 14, finalY + 21)
+      doc.text(`Reçu: ${sale.amountPaid.toLocaleString()} ${currency}`, 14, finalY + 16)
+      doc.text(`Rendu: ${(sale.amountPaid - sale.total).toLocaleString()} ${currency}`, 14, finalY + 21)
+    }
+    
+    // Footer
+    if (settings?.receiptFooter) {
+      doc.setFontSize(8)
+      doc.text(settings.receiptFooter, 105, finalY + 30, { align: "center" })
     }
 
     doc.save(`recu_${Date.now()}.pdf`)

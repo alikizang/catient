@@ -498,3 +498,47 @@ export async function convertProformaToSale(invoiceId: string, saleData: Omit<Sa
     throw e;
   }
 }
+
+// --- Settings ---
+export interface AppSettings {
+  id?: string;
+  companyName: string;
+  companyAddress: string;
+  companyPhone: string;
+  companyEmail: string;
+  receiptHeader: string;
+  receiptFooter: string;
+  currency: string;
+  showTva: boolean;
+}
+
+export async function getSettings(): Promise<AppSettings> {
+  const docRef = doc(db, "settings", "general");
+  const snapshot = await getDocs(query(collection(db, "settings"), limit(1)));
+  
+  // If "general" doc doesn't exist but others do (migration?), or just fetch first
+  // Ideally we stick to ID "general"
+  const d = await import("firebase/firestore").then(m => m.getDoc(docRef));
+  
+  if (d.exists()) {
+    return { id: d.id, ...d.data() } as AppSettings;
+  }
+  
+  // Return defaults if not found
+  return {
+    companyName: "CATIENT SERVICES",
+    companyAddress: "Lomé, Togo",
+    companyPhone: "+228 90 00 00 00",
+    companyEmail: "",
+    receiptHeader: "REÇU DE CAISSE",
+    receiptFooter: "Merci de votre visite !",
+    currency: "FCFA",
+    showTva: false
+  };
+}
+
+export async function updateSettings(settings: Partial<AppSettings>) {
+  const docRef = doc(db, "settings", "general");
+  // Check if exists first, or use set with merge
+  await import("firebase/firestore").then(m => m.setDoc(docRef, settings, { merge: true }));
+}
