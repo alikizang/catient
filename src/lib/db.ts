@@ -92,6 +92,17 @@ export interface StockMovement {
   performedBy: string;
 }
 
+export interface Expense {
+  id?: string;
+  date: Timestamp;
+  category: 'FIXED' | 'VARIABLE';
+  type: string; // "Loyer", "Electricité", "Salaire", "Communication", "Autre"
+  description: string;
+  amount: number;
+  performedBy: string; // Name of user who made the expense
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+}
+
 // --- Products ---
 export async function getProducts() {
   const q = query(collection(db, "products"), orderBy("name"));
@@ -244,39 +255,7 @@ export async function getSupplies() {
 
 export async function addSupply(supply: Omit<Supply, "id">) {
   try {
-    const batch = writeBatch(db);
     const supplyRef = doc(collection(db, "supplies"));
-    
-    // 1. Save Supply
-    batch.set(supplyRef, {
-      ...supply,
-      date: supply.date || Timestamp.now()
-    });
-
-    // 2. Process items (Update Stock & Cost Price)
-    for (const item of supply.items) {
-      const productRef = doc(db, "products", item.productId);
-      
-      // We need to read the current product to calculate Weighted Average Cost
-      // In a real offline-first app, this might be tricky if data isn't cached.
-      // We'll assume we can read it or use a simpler "Last Price" approach if reading fails/is too complex for batch.
-      // But for correct accounting, we MUST read.
-      
-      // Since we can't easily "read-modify-write" in a batch without a transaction (which requires online),
-      // we have two choices:
-      // A. Use Transaction (Requires Online).
-      // B. Read first (async), then Batch write. (Risk of race condition, but acceptable for this scale).
-      // Let's go with B for better offline-capability (if read comes from cache).
-      
-      // Actually, we can't await inside the batch loop easily if we want to be purely atomic in one go.
-      // But we CAN read before creating the batch.
-    }
-    
-    // Let's refactor to read all products first
-    // Note: This function will be called from UI where we might already have product data.
-    // To be safe, we'll assume the UI sends the *Calculated* new cost or we assume "Last Price" if we want simple logic.
-    // But the prompt wants "clean and coherent". The most coherent is Weighted Average.
-    // Let's use a Transaction to be safe and accurate. Offline support for *Supplies* (Admin task) is less critical than Sales.
     
     await runTransaction(db, async (transaction) => {
       // 1. Create Supply
@@ -326,4 +305,23 @@ export async function addSupply(supply: Omit<Supply, "id">) {
     console.error("Supply transaction failed:", e);
     throw e;
   }
+}
+
+// --- Expenses ---
+export async function getExpenses() {
+  const q = query(collection(db, "expenses"), orderBy("date", "desc"), limit(50));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense));
+}
+
+export async function addExpense(expense: Omit<Expense, "id">) {
+  return await addDoc(collection(db, "expenses"), {
+    ...expense,
+    date: expense.date || Timestamp.now()
+  });
+}
+
+export async function updateExpenseStatus(id: string, status: 'APPROVED' | 'REJECTED') {
+  const expenseRef = doc(db, "expenses", id);
+  await updateDoc(expenseRef, { status });
 }
