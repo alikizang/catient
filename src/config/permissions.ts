@@ -5,6 +5,9 @@ import {
   Users,
   FileText,
   BarChart3,
+  Truck,
+  Wallet,
+  PieChart
 } from "lucide-react"
 
 export const PERMISSIONS = [
@@ -52,19 +55,19 @@ export const PERMISSIONS = [
   {
     title: "Approvisionnements",
     url: "/approvisionnements",
-    icon: BarChart3,
+    icon: Truck,
     roles: ["SUPERADMIN"],
   },
   {
     title: "Dépenses",
     url: "/depenses",
-    icon: BarChart3,
+    icon: Wallet,
     roles: ["SUPERADMIN", "MANAGER", "CAISSE"],
   },
   {
     title: "Rentabilité",
     url: "/finance",
-    icon: BarChart3,
+    icon: PieChart,
     roles: ["SUPERADMIN"],
   },
 ]
