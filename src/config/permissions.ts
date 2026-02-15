@@ -47,10 +47,18 @@ export const PERMISSIONS = [
     roles: ["SUPERADMIN"],
   },
   {
+    title: "Partenaires",
+    url: "/partenaires",
+    icon: Users,
+    roles: ["SUPERADMIN", "MANAGER"],
+  },
+  {
     title: "Rapports",
     url: "/rapports",
     icon: BarChart3,
     roles: ["SUPERADMIN", "MANAGER"],
+  },
+],
   },
   {
     title: "Approvisionnements",

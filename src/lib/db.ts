@@ -103,6 +103,28 @@ export interface Expense {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
+export interface Partner {
+  id?: string;
+  name: string;
+  type: 'CLIENT' | 'SUPPLIER';
+  phone?: string;
+  email?: string;
+  address?: string;
+  balance: number; // Positive = They owe us (Créance), Negative = We owe them (Dette)
+  createdAt: Timestamp;
+}
+
+export interface Transaction {
+  id?: string;
+  date: Timestamp;
+  partnerId: string;
+  type: 'INVOICE' | 'PAYMENT'; // Invoice = Nouvelle dette/créance, Payment = Règlement
+  amount: number;
+  description: string;
+  referenceId?: string; // ID de la vente ou de l'approvisionnement lié
+  performedBy: string;
+}
+
 // --- Products ---
 export async function getProducts() {
   const q = query(collection(db, "products"), orderBy("name"));
@@ -324,4 +346,71 @@ export async function addExpense(expense: Omit<Expense, "id">) {
 export async function updateExpenseStatus(id: string, status: 'APPROVED' | 'REJECTED') {
   const expenseRef = doc(db, "expenses", id);
   await updateDoc(expenseRef, { status });
+}
+
+// --- Partners ---
+export async function getPartners() {
+  const q = query(collection(db, "partners"), orderBy("name"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Partner));
+}
+
+export async function addPartner(partner: Omit<Partner, "id">) {
+  return await addDoc(collection(db, "partners"), {
+    ...partner,
+    createdAt: Timestamp.now()
+  });
+}
+
+export async function getPartnerTransactions(partnerId: string) {
+  const q = query(collection(db, "transactions"), where("partnerId", "==", partnerId), orderBy("date", "desc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+}
+
+export async function addPartnerTransaction(transaction: Omit<Transaction, "id">) {
+  try {
+    await runTransaction(db, async (t) => {
+      // 1. Create Transaction Record
+      const transactionRef = doc(collection(db, "transactions"));
+      t.set(transactionRef, {
+        ...transaction,
+        date: transaction.date || Timestamp.now()
+      });
+
+      // 2. Update Partner Balance
+      const partnerRef = doc(db, "partners", transaction.partnerId);
+      const partnerDoc = await t.get(partnerRef);
+      if (!partnerDoc.exists()) throw "Partner not found";
+
+      const currentBalance = partnerDoc.data().balance || 0;
+      // If INVOICE (Dette/Créance augmentée) -> +Amount
+      // If PAYMENT (Règlement) -> -Amount
+      // Note: Logic depends on Partner Type.
+      // Let's keep it simple: Balance = (Total Invoices) - (Total Payments)
+      // Positive Balance = Client doit payer OR On a payé d'avance au fournisseur (Avance)
+      // Wait, standard accounting:
+      // Client: Debit (Doit) is positive. Credit (Payé) is negative.
+      // Supplier: Credit (On doit) is positive? No, let's use signed numbers relative to US.
+      // Let's stick to "Balance = What they owe us".
+      // If Client buys on credit -> Balance Increases (+). Client pays -> Balance Decreases (-).
+      // If We buy from Supplier on credit -> Balance Decreases (-) (We owe them). We pay Supplier -> Balance Increases (+) (Back to 0).
+      
+      // But to avoid confusion, let's just apply the amount signed from the UI.
+      // UI sends +Amount for Debt Increase, -Amount for Debt Decrease.
+      // Actually, let's do:
+      // INVOICE (Facture émise ou reçue) : Increases the absolute debt.
+      // PAYMENT (Règlement) : Decreases the absolute debt.
+      
+      // Let's rely on the `amount` sign passed.
+      // If transaction.amount is positive, it adds to balance.
+      
+      const newBalance = currentBalance + transaction.amount;
+      
+      t.update(partnerRef, { balance: newBalance });
+    });
+  } catch (e) {
+    console.error("Transaction failed:", e);
+    throw e;
+  }
 }
