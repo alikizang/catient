@@ -49,4 +49,10 @@ export const PERMISSIONS = [
     icon: BarChart3,
     roles: ["SUPERADMIN", "MANAGER"],
   },
+  {
+    title: "Approvisionnements",
+    url: "/approvisionnements",
+    icon: BarChart3,
+    roles: ["SUPERADMIN"],
+  },
 ]
